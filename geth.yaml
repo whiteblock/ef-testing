@@ -1,8 +1,8 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "20"
-  _PHASE_ONE_BLOCKS: "100"
+  _ACCOUNTS_TO_CREATE: "2"
+  _BA_PARAMETER: "1"
 services: 
   - name: geth
     image: "ethereum/client-go:alltools-latest"
@@ -14,7 +14,7 @@ services:
       inline: >
         mkdir -p /geth/keystore;
         cp /accounts/keystore/* /geth/keystore;
-        cp /accounts/static-nodes.json /geth/;
+        cp /accounts/static-nodes${INDEX}.json /geth/static-nodes.json;
         echo $_ACCOUNT_PASSWORD > /geth/pw.txt;
         geth --nousb --datadir /geth/ init /accounts/genesis.json;
         geth --networkid $_ETH_NETWORK_ID
@@ -22,6 +22,7 @@ services:
         --http
         --http.addr 0.0.0.0
         --miner.gasprice=${MINER_GASPRICE}
+        --miner.gaslimit=${MINER_GASLIMIT}
         --http.api "admin,web3,eth,net,personal,miner,txpool"
         --http.corsdomain "0.0.0.0"
         --txpool.nolocals
@@ -37,19 +38,20 @@ services:
         --miner.threads=${MINER_THREADS}
         --nodekeyhex $(cat /accounts/priv$INDEX)
         --nodiscover
-  #--bootnodes enode://$(cat /accounts/nodekey0)@${GETH_SERVICE0_COMMON_NETWORK}:30303?discport=30303
+        --txpool.accountslots 5500
     environment:
       MINER_GASPRICE: "1"
       MINER_THREADS: "1"
+      MINER_GASLIMIT: "400000000"
     resources:
-      cpus: 4
+      cpus: 2
       memory: 8 GB
       storage: 40 GiB
   
   - name: record
     image: gcr.io/whiteblock/helpers/ethereum/record:master
     script:
-      inline:
+      inline: 
         app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545
     resources:
       memory: 1 GiB
@@ -69,19 +71,32 @@ services:
       memory: 1 GiB
 
 sidecars:
-  - name: background-transactions
+  - name: tx-generator
     sidecar-to:
       - geth
     volumes:
       - path: /accounts/
         name: accounts
         scope: singleton
-    image: gcr.io/whiteblock/helpers/ethereum/tx:master
+    image: gcr.io/whiteblock/helpers/ethereum/tx:ef
     script:
-      inline: tx --chain-id $_ETH_NETWORK_ID --tps ${TPS} --target $SERVICE:8545 --private-key-file /accounts/accounts.json --gas-limit ${GAS_LIMIT}
+      # recvAddrs${INDEX}.json will be comma separated addresses with 0x prefix
+      inline: >
+        cat /accounts/accounts.json 
+        | jq --arg i "${INDEX}" 'del(.[$i | tonumber]) | map(.address) | join(",")' 
+        > /accounts/recvAddrs${INDEX}.json;
+        privkey=$(cat /accounts/accounts.json | jq --arg i "${INDEX}" '.[$i | tonumber].privateKey');
+        tx --chain-id $_ETH_NETWORK_ID 
+        --tps ${TPS} 
+        --target $SERVICE:8545 
+        --private-key ${privkey} 
+        --gas-limit ${GAS_LIMIT} 
+        --tx-size 3200 
+        --gas-price 4000000
+        --destination $(cat /accounts/recvAddrs${INDEX}.json)
     environment:
       TPS: "80"
-      GAS_LIMIT: "4000000"
+      GAS_LIMIT: "5000000"
     resources:
       cpus: 2
       memory: 3 GB
@@ -105,7 +120,7 @@ task-runners:
         name: accounts
         scope: singleton
     script:
-      inline: genesis generate -a /accounts/accounts.json -o consensus=ethhash | tee /accounts/genesis.json
+      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=400000000 -o difficulty=5 -o fixedDifficulty=5 | tee /accounts/genesis.json
     resources:
       memory: 2 GB
   - name: generate-static-peers
@@ -116,7 +131,16 @@ task-runners:
         scope: singleton
     script: 
       inline: generate --accounts-file /accounts/accounts.json --network common-network --service geth | tee /accounts/static-nodes.json
-  
+ 
+  - name: generate-topology
+    image: gcr.io/whiteblock/helpers/ethereum/topology:master
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+    script:
+      inline: python generate.py /accounts/static-nodes.json /accounts/ $_ACCOUNTS_TO_CREATE $_BA_PARAMETER 54321 50
+
   - name: generate-keystore
     image: gcr.io/whiteblock/helpers/geth/keystore:master
     volumes:
@@ -157,11 +181,15 @@ tests:
           - type: generate-genesis
           - type: generate-keystore
           - type: generate-static-peers
+
+      - name: setup-topology
+        tasks:
+          - type: generate-topology
       
       - name: starting-geth-nodes
         system:
           - type: geth
-            count: 4
+            count: 2
             resources:
               networks:
                 - name: common-network
@@ -169,7 +197,7 @@ tests:
       - name: awaiting-block-production
         tasks:
           - type: await-block-production
-            timeout: 10m
+            timeout: 30m
             networks:
               - name: common-network
 
@@ -194,12 +222,5 @@ tests:
           port-mappings:
             - "16555:16555"
           resources:
-            networks:
-              - name: common-network
-
-      - name: waiting-for-block-$_PHASE_ONE_BLOCKS
-        tasks:
-          - type: await-blocks-$_PHASE_ONE_BLOCKS
-            timeout: 60m
             networks:
               - name: common-network
