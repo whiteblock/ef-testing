@@ -7,6 +7,7 @@ substitutions:
   _TPS: 20                   # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 3200
   _CONCURRENT_NONCES: 600    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
+  _TOTAL_BLOCKS: 2000
 services: 
   - name: geth
     image: "ethereum/client-go:alltools-latest"
@@ -166,10 +167,10 @@ task-runners:
     resources:
       memory: 1 GB
 
-  - name: await-blocks-$_PHASE_ONE_BLOCKS
+  - name: await-blocks-$_TOTAL_BLOCKS
     image: gcr.io/whiteblock/helpers/ethereum/await-blocks:master
     script:
-      inline: await --target $GETH_SERVICE0_COMMON_NETWORK:8545 --block $_PHASE_ONE_BLOCKS
+      inline: await --target $GETH_SERVICE0_COMMON_NETWORK:8545 --block $_TOTAL_BLOCKS
     resources:
       memory: 1 GB
 
@@ -227,5 +228,12 @@ tests:
           port-mappings:
             - "16555:16555"
           resources:
+            networks:
+              - name: common-network
+
+      - name: waiting-for-block-$_TOTAL_BLOCKS
+        tasks:
+          - type: await-blocks-$_TOTAL_BLOCKS
+            timeout: 120m
             networks:
               - name: common-network
