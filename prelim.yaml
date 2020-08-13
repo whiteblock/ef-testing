@@ -1,12 +1,12 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "2"  # should be same as num. nodes
+  _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
   _BA_PARAMETER: "10"
-  _GAS_LIMIT: 3000000
-  _TPS: 200                  # per node, pick sufficiently high rate for saturation 
+  _GAS_LIMIT: 52000000
+  _TPS: 20                   # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 3200
-  _CONCURRENT_NONCES: 2000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
+  _CONCURRENT_NONCES: 600    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
 services: 
   - name: geth
     image: "ethereum/client-go:alltools-latest"
@@ -42,7 +42,7 @@ services:
         --miner.threads=${MINER_THREADS}
         --nodekeyhex $(cat /accounts/priv$INDEX)
         --nodiscover
-        --txpool.accountslots 5000
+        --txpool.accountslots 5500
     environment:
       MINER_GASPRICE: "1"
       MINER_THREADS: "1"
