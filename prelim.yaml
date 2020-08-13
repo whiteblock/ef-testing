@@ -4,10 +4,11 @@ substitutions:
   _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
   _BA_PARAMETER: "10"
   _GAS_LIMIT: 52000000
-  _TPS: 20                   # per node, pick sufficiently high rate for saturation 
+  _GAS_TARGET: 47000000
+  _TPS: 200                   # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 3200
-  _CONCURRENT_NONCES: 600    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
-  _TOTAL_BLOCKS: 2000
+  _CONCURRENT_NONCES: 4000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
+  _TOTAL_BLOCKS: 3000
 services: 
   - name: geth
     image: "ethereum/client-go:alltools-latest"
@@ -28,6 +29,7 @@ services:
         --http.addr 0.0.0.0
         --miner.gasprice=${MINER_GASPRICE}
         --miner.gaslimit=$_GAS_LIMIT
+        --miner.gastarget=$_GAS_TARGET
         --http.api "admin,web3,eth,net,personal,miner,txpool"
         --http.corsdomain "0.0.0.0"
         --txpool.nolocals
@@ -48,7 +50,7 @@ services:
       MINER_GASPRICE: "1"
       MINER_THREADS: "1"
     resources:
-      cpus: 2
+      cpus: 3
       memory: 8 GB
       storage: 40 GiB
   
@@ -125,7 +127,7 @@ task-runners:
         name: accounts
         scope: singleton
     script:
-      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=1000000 | tee /accounts/genesis.json
+      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=600000 | tee /accounts/genesis.json
     resources:
       memory: 2 GB
   - name: generate-static-peers
