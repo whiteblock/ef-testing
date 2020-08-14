@@ -1,8 +1,8 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
-  _BA_PARAMETER: "10"
+  _ACCOUNTS_TO_CREATE: "10"  # should be same as num. nodes
+  _BA_PARAMETER: "5"
   _GAS_LIMIT: 52000000
   _GAS_TARGET: 47000000
   _TPS: 200                   # per node, pick sufficiently high rate for saturation 
@@ -146,7 +146,7 @@ task-runners:
         name: accounts
         scope: singleton
     script:
-      inline: python generate.py /accounts/static-nodes.json /accounts/ $_ACCOUNTS_TO_CREATE $_BA_PARAMETER 54321 50
+      inline: python generate.py /accounts/static-nodes.json /accounts/ $_ACCOUNTS_TO_CREATE $_BA_PARAMETER 54321 10
 
   - name: generate-keystore
     image: gcr.io/whiteblock/helpers/geth/keystore:master
@@ -196,7 +196,7 @@ tests:
       - name: starting-geth-nodes
         system:
           - type: geth
-            count: 30 # <---------------------------------------------
+            count: 10 # <---------------------------------------------
             resources:
               networks:
                 - name: common-network
