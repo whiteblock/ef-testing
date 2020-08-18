@@ -1,6 +1,9 @@
 local:
 	genesis local geth.yaml
 
+prod:
+	genesis run geth-prod.yaml
+
 stop:
 	docker stop $$(docker ps -q)
 
