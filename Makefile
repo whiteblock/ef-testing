@@ -2,7 +2,7 @@ local:
 	genesis local geth.yaml
 
 prod:
-	genesis run geth-prod.yaml
+	genesis run geth-prod.yaml --json paccode
 
 stop:
 	docker stop $$(docker ps -q)

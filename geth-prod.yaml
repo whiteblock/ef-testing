@@ -1,9 +1,9 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "2"  # should be same as num. nodes
-  _BA_PARAMETER: "1"
-  _GAS_LIMIT: 3000000
+  _ACCOUNTS_TO_CREATE: "5"  # should be same as num. nodes
+  _BA_PARAMETER: "3"
+  _GAS_LIMIT: 47000000
   _TPS: 200                  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 3200
   _CONCURRENT_NONCES: 2000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
@@ -99,7 +99,7 @@ sidecars:
         --destination $(cat /accounts/recvAddrs${INDEX}.json)
         --concurrent-nonces $_CONCURRENT_NONCES
     environment:
-      TX_GAS_PRICE: "4000000"
+      TX_GAS_PRICE: "3000000"
       TX_GAS_LIMIT: "5000000"
     resources:
       cpus: 2
@@ -123,7 +123,7 @@ task-runners:
       - path: /accounts/
         name: accounts
         scope: singleton
-    environment:
+#    environment:
     script:
       inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=1000000 | tee /accounts/genesis.json
     resources:
@@ -194,11 +194,11 @@ tests:
       - name: starting-geth-nodes
         system:
           - type: geth
-            count: 2 # <---------------------------------------------
+            count: 5 # <---------------------------------------------
             resources:
               networks:
                 - name: common-network
-                  bandwidth: 100 Mbit
+#                  bandwidth: 100 Mbit
       
       - name: awaiting-block-production
         tasks:
@@ -217,6 +217,7 @@ tests:
               - name: common-network
 
       - name: start-custom-viewers
+        duration: 120m #wait 120 minutes before checking for tx completion
         system:
         - type: tps-logger 
           port-mappings:
