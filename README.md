@@ -45,11 +45,56 @@ to allow a lot of concurrent transactions in the mempool.
     * ~12.37 tx/block
 
  * 640KB Blocks: 47mil gas limit (try 52 mil)
+    * target of ~196 tx/block
     * Test results with 47mil gas limit on 2 nodes (`genesis local`): 
 
-    {"difficulty":{"max":199886,"standardDeviation":20981.299647556945,"mean":162157.4734411085},"totalDifficulty":{"max":140428372,"standardDeviation":40515682.18970304,"mean":65171068.34411084},"gasLimit":{"max":47000000,"standardDeviation":10320.095611324547,"mean":46998445.1143187},"gasUsed":{"max":42100552,"standardDeviation":4268547.787777598,"mean":41653278.82678979},"blockTime":{"max":368,"standardDeviation":12.652347024741374,"mean":2.3761574074074066},"blockSize":{"max":586956,"standardDeviation":59402.61354278756,"mean":580195.2840646649},"transactionPerBlock":{"max":177,"standardDeviation":17.95010692926018,"mean":175.16050808314077},"uncleCount":{"max":1,"standardDeviation":0.19693215894518937,"mean":0.040415704387990775},"tps":{"max":177,"standardDeviation":56.81412697238439,"mean":136.80314743151735},"blocks":866}
-
-
-
-
-
+```
+{
+  "difficulty": {
+    "max": 199886,
+    "standardDeviation": 20981.299647556945,
+    "mean": 162157.4734411085
+  },
+  "totalDifficulty": {
+    "max": 140428372,
+    "standardDeviation": 40515682.18970304,
+    "mean": 65171068.34411084
+  },
+  "gasLimit": {
+    "max": 47000000,
+    "standardDeviation": 10320.095611324547,
+    "mean": 46998445.1143187
+  },
+  "gasUsed": {
+    "max": 42100552,
+    "standardDeviation": 4268547.787777598,
+    "mean": 41653278.82678979
+  },
+  "blockTime": {
+    "max": 368,
+    "standardDeviation": 12.652347024741374,
+    "mean": 2.3761574074074066
+  },
+  "blockSize": {
+    "max": 586956,
+    "standardDeviation": 59402.61354278756,
+    "mean": 580195.2840646649
+  },
+  "transactionPerBlock": {
+    "max": 177,
+    "standardDeviation": 17.95010692926018,
+    "mean": 175.16050808314077
+  },
+  "uncleCount": {
+    "max": 1,
+    "standardDeviation": 0.19693215894518937,
+    "mean": 0.040415704387990775
+  },
+  "tps": {
+    "max": 177,
+    "standardDeviation": 56.81412697238439,
+    "mean": 136.80314743151735
+  },
+  "blocks": 866
+}
+```
