@@ -8,4 +8,4 @@ get:
 	@go get -v -d ./gethparser/...
 
 parser: | get
-	@go build -o gethparser ./gethparser
+	@go build -o parser ./gethparser
