@@ -1,10 +1,11 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "5"  # should be same as num. nodes
-  _BA_PARAMETER: "3"
+  _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
+  _BA_PARAMETER: "10"
   _GAS_LIMIT: 47000000
-  _TPS: 200                  # per node, pick sufficiently high rate for saturation 
+  _GAS_TARGET: 47000000
+  _TPS: 40                  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 3200
   _CONCURRENT_NONCES: 2000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
 services: 
@@ -27,6 +28,7 @@ services:
         --http.addr 0.0.0.0
         --miner.gasprice=${MINER_GASPRICE}
         --miner.gaslimit=$_GAS_LIMIT
+        --miner.gastarget=$_GAS_TARGET
         --http.api "admin,web3,eth,net,personal,miner,txpool"
         --http.corsdomain "0.0.0.0"
         --txpool.nolocals
@@ -194,7 +196,7 @@ tests:
       - name: starting-geth-nodes
         system:
           - type: geth
-            count: 5 # <---------------------------------------------
+            count: 30 # <---------------------------------------------
             resources:
               networks:
                 - name: common-network
