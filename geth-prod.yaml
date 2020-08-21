@@ -1,16 +1,16 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
-  _BA_PARAMETER: "10"
+  _ACCOUNTS_TO_CREATE: "5"  # should be same as num. nodes
+  _BA_PARAMETER: "3"
   _GAS_LIMIT: 47000000
   _GAS_TARGET: 47000000
-  _TPS: 40                  # per node, pick sufficiently high rate for saturation 
+  _TPS: 200                  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 3200
-  _CONCURRENT_NONCES: 2000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
+  _CONCURRENT_NONCES: 1000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
 services: 
   - name: geth
-    image: "ethereum/client-go:alltools-latest"
+    image: "ethereum/client-go:alltools-v1.9.19"
     volumes:
       - path: /accounts/
         name: accounts
@@ -127,7 +127,7 @@ task-runners:
         scope: singleton
 #    environment:
     script:
-      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=1000000 | tee /accounts/genesis.json
+      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=500000 | tee /accounts/genesis.json
     resources:
       memory: 2 GB
   - name: generate-static-peers
@@ -196,7 +196,7 @@ tests:
       - name: starting-geth-nodes
         system:
           - type: geth
-            count: 30 # <---------------------------------------------
+            count: 5 # <---------------------------------------------
             resources:
               networks:
                 - name: common-network
