@@ -100,10 +100,8 @@ func (o *Outputter) extractKVPairs(msg SyslogngOutput) LogLine {
     fmt.Println(rawTS)
 
     years := time.Now().Year()
-    fmt.Println(years)
     t, err := time.Parse("[01-02|15:04:05.000]",rawTS)
     t = t.AddDate(years, 0, 0)
-    fmt.Println(t)
     if err != nil {
         panic(err)
     }

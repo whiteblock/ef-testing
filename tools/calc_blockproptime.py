@@ -62,28 +62,42 @@ class BlockPropagationParser:
 
     def calc_prop_times(self):
         for hash, data in self.blocks.items():
-            if len(data["importTimes"]) == (self.num_nodes - 1):
+            if len(data["importTimes"]) >= (self.num_nodes - 1):
                 if data["mined"] == 0:
                     print("missing block mining time, skipping...")
                     continue
-                half = math.ceil(self.num_nodes / 2)
-                fifty_pct = data["importTimes"][half] - data["mined"]
+
+                # 51% mark is half the number of nodes
+                # The miner never prints out that it imports a segment, so we
+                # subract 1
+                half = math.ceil(self.num_nodes / 2) - 2
+                try: 
+                    fifty_pct = data["importTimes"][half] - data["mined"]
+                except IndexError:
+                    print(self.num_nodes)
                 hundred_pct = data["importTimes"][self.num_nodes - 2] - data["mined"]
 
-                self.blocks[hash]["fifty_pct"] = fifty_pct 
+                self.blocks[hash]["fifty_pct"] = fifty_pct
                 self.fifty_pct_times.append(fifty_pct)
                 self.blocks[hash]["hundred_pct"] = hundred_pct
                 self.hundred_pct_times.append(hundred_pct)
+    def count_final_blocks(self):
+        cnt = 0
+        for hash, data in self.blocks.items():
+            if len(data["importTimes"]) > 1:
+                cnt += 1
+        return cnt
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
         path = sys.argv[1]
     else:
-        print("usage: python plot_blockproptime.py {geth_json_log_dir}")
+        print("usage: python calc_blockproptime.py {geth_json_log_dir}")
         exit()
 
     parser = BlockPropagationParser()
+    parser.num_nodes = 30
 
     if os.path.isdir(path):
         files = os.listdir(path)
@@ -96,7 +110,6 @@ if __name__ == '__main__':
         if geth_log:
             try:
                 blockPropTimes = parser.parse_file(f)
-                parser.num_nodes += 1
             except FileNotFoundError:
                 # sometimes we are missing logs...
                 continue
@@ -104,7 +117,11 @@ if __name__ == '__main__':
     parser.sort_import_times()
     parser.calc_prop_times()
     b = json.dumps(parser.blocks, indent=4, ensure_ascii=False)
-    print(f"Number of Blocks: {len(parser.fifty_pct_times)}")
+    print(f"Blocks Considered Final: {parser.count_final_blocks()}")
+    print(f"Test ID: {sys.argv[1]}")
+    print(f"Total Blocks Seen: {len(parser.blocks)}")
+    print(f"Blocks considered final: {parser.count_final_blocks()}")
+    print(f"Blocks with Complete Stats: {len(parser.fifty_pct_times)}")
     print(f"51% block propagation time avg: {mean(parser.fifty_pct_times)} ms")
     print(f"100% block prop. time avg: {mean(parser.hundred_pct_times)} ms")
 

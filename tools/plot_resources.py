@@ -4,8 +4,9 @@ import os
 import matplotlib.pyplot as plt
 import signal
 import numpy as np
+import re
 
-MAX_FILES = 2
+MAX_FILES = 7
 
 def signal_handler(fig, frame):
     print("Ctrl+c detected, exiting and closing all plots...")
@@ -16,7 +17,7 @@ class ResourceParser:
     def __init__(self):
         self.start = 0
 
-    def plot_resources(self, resources):
+    def plot_resources(self, resources, filename):
 
         dt = np.diff(resources['time'])
 
@@ -24,13 +25,13 @@ class ResourceParser:
         cpu = np.diff(resources['cpuSum']) / (3E9)  # 3 cores per node
         cpu_util = cpu / dt
         plt.plot(resources['time'][1:], cpu_util)
-        plt.title("CPU Utilization")
+        plt.title(f"CPU Utilization\n{filename}")
         plt.ylabel("Utilization")
         plt.xlabel("Seconds")
 
         plt.figure()
         plt.plot(resources['time'], resources['memory'])
-        plt.title("Memory Usage")
+        plt.title(f"Memory Usage\n{filename}")
         plt.ylabel("Usage (MB)")
         plt.xlabel("Seconds")
 
@@ -39,7 +40,7 @@ class ResourceParser:
         egressInst = np.diff(resources['net']['egress']) / dt
         plt.plot(resources['time'][1:], ingressInst, 'b')
         plt.plot(resources['time'][1:], egressInst, "orange")
-        plt.title("Network Ingress and Egress")
+        plt.title(f"Network Ingress and Egress\n{filename}")
         plt.ylabel("KB/s")
         plt.xlabel("Seconds")
         ax.legend(['Ingress', 'Egress'])
@@ -47,7 +48,7 @@ class ResourceParser:
         plt.figure()
         plt.plot(resources['time'], resources['pkt']['drop'], '.')
         plt.plot(resources['time'], resources['pkt']['err'], 'r-')
-        plt.title("Packet Drops and Errors")
+        plt.title(f"Packet Drops and Errors\n{filename}")
         plt.ylabel("count")
         plt.xlabel("Seconds")
 
@@ -128,7 +129,7 @@ if __name__ == '__main__':
         geth_log = re.search("^geth-service[0-9]*$", f)
         if geth_log:
             resources = rPraser.parse_file(f)
-            rPraser.plot_resources(resources)
+            rPraser.plot_resources(resources, f)
             cnt += 1
             if cnt == MAX_FILES:
                 break

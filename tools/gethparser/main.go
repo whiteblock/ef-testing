@@ -21,7 +21,7 @@ var root = &cobra.Command{
     Use:     "parser <source-file> <destination-file>",
     Version: "1.0.0",
     Run: func(cmd *cobra.Command, args []string) {
-        util.CheckArguments(cmd, args, 2, 2)
+        util.CheckArguments(cmd, args, 1, 1)
         source, err := os.Open(args[0])
         if err != nil {
             util.ErrorFatal(err)

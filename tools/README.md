@@ -1,16 +1,22 @@
 ## Tools
 
+#### Notes
+
+ * Run `parser` on the syslog-ng logs on the server. It will extract only the 
+ log lines of interest.
+ * See `dl_logs.sh` for scp commands to download the folder of parsed logs. 
+
 #### syslogng parsing example
 
 Build `parser` to parse Genesis syslog-ng logs for block propagation logs
 by container.
 
     make
-    ./gethparser -t 42a8799e-7881-4430-9dbb-ed304d1bd224 ef-test.log
+    ./parser -t 42a8799e-7881-4430-9dbb-ed304d1bd224 ef-test-42a879.log
 
 See help of `parser` for more information. 
 
-    #python plot_blockproptime.py 42a8799e-7881-4430-9dbb-ed304d1bd224/
+    #python calc_blockproptime.py 42a8799e-7881-4430-9dbb-ed304d1bd224/
 
 #### cadvisor parsing example
 
@@ -20,8 +26,9 @@ Build cadvisor resource processor from source
     cd pre-processors
     make
     mv bin/resources ../  #move it to the same place as `parser`
-    ./resources 42a8799e-7881-4430-9dbb-ed304d1bd224.stat -s stat-42a8799e-7881-4430-9dbb-ed304d1bd224/
-    python plot_resources.py stat-42a8799e-7881-4430-9dbb-ed304d1bd224/
+    ./resources 42a8799e-7881-4430-9dbb-ed304d1bd224.stat -s rstat-42a8799e-7881-4430-9dbb-ed304d1bd224/
+    python plot_resources.py rstat-42a8799e-7881-4430-9dbb-ed304d1bd224/
+    # set var MAX_FILES to limit how many graphs to show
 
 You can also run plot_resources.py on a single file:
     
