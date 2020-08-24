@@ -1,12 +1,12 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "5"  # should be same as num. nodes
-  _BA_PARAMETER: "3"
+  _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
+  _BA_PARAMETER: "12"
   _GAS_LIMIT: 52000000
   _GAS_TARGET: 47000000
-  _TPS: 200              # per node, pick sufficiently high rate for saturation 
-  _TX_SIZE: 3200
+  _TPS: 12              # per node, pick sufficiently high rate for saturation 
+  _TX_SIZE: 6400
   _CONCURRENT_NONCES: 2000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
 services: 
   - name: geth
@@ -33,7 +33,7 @@ services:
         --http.corsdomain "0.0.0.0"
         --txpool.nolocals
         --http.vhosts=*
-        --verbosity=5
+        --verbosity=3
         --port 30303
         --nousb
         --miner.etherbase $(cat /accounts/address${INDEX})
@@ -50,7 +50,7 @@ services:
       MINER_THREADS: "1"
     resources:
       cpus: 2
-      memory: 8 GB
+      memory: 6 GB
       storage: 40 GiB
   
   - name: record
@@ -58,6 +58,14 @@ services:
     script:
       inline: 
         app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545
+    resources:
+      memory: 1 GiB
+
+  - name: block-logger
+    image: gcr.io/whiteblock/helpers/ethereum/block-logger:master
+    script:
+      inline: 
+        app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545 --delay 10
     resources:
       memory: 1 GiB
 
@@ -196,7 +204,7 @@ tests:
       - name: starting-geth-nodes
         system:
           - type: geth
-            count: 5 # <---------------------------------------------
+            count: 30 # <---------------------------------------------
             resources:
               networks:
                 - name: common-network
@@ -224,6 +232,10 @@ tests:
         - type: tps-logger 
           port-mappings:
             - "17777:17777"
+          resources:
+            networks:
+              - name: common-network
+        - type: block-logger
           resources:
             networks:
               - name: common-network
