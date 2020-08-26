@@ -2,16 +2,16 @@ substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
   _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
-  _BA_PARAMETER: "10"
-  _GAS_LIMIT: 52000000
-  _GAS_TARGET: 47000000
+  _BA_PARAMETER: "90"
+  _GAS_LIMIT: 7900000
+  _GAS_TARGET: 2900000
   _TPS: 10            # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
   _CONCURRENT_NONCES: 150    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
 services: 
   - name: geth
-#    image: "ethereum/client-go:alltools-v1.9.18"
-    image: "gcr.io/whiteblock/geth-wb/geth:v1.9.18"
+    image: "ethereum/client-go:alltools-v1.9.18"
+#    image: "gcr.io/whiteblock/geth-wb/geth:v1.9.18"
     volumes:
       - path: /accounts/
         name: accounts
@@ -209,7 +209,7 @@ tests:
             resources:
               networks:
                 - name: common-network
-#                  bandwidth: 100 Mbit
+                  bandwidth: 100 Mbit
       
       - name: awaiting-block-production
         tasks:
