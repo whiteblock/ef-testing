@@ -1,9 +1,9 @@
 substitutions:
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
-  _BA_PARAMETER: "90"
-  _GAS_LIMIT: 7900000
+  _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
+  _BA_PARAMETER: "10"
+  _GAS_LIMIT: 3000000
   _GAS_TARGET: 2900000
   _TPS: 10            # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
