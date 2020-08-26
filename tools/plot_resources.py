@@ -6,7 +6,8 @@ import signal
 import numpy as np
 import re
 
-MAX_FILES = 7
+MAX_FILES = 100
+FIGURE_SAVE_DIR = 'figures'
 
 def signal_handler(fig, frame):
     print("Ctrl+c detected, exiting and closing all plots...")
@@ -21,19 +22,24 @@ class ResourceParser:
 
         dt = np.diff(resources['time'])
 
-        plt.figure()
+        fig = plt.figure()
         cpu = np.diff(resources['cpuSum']) / (3E9)  # 3 cores per node
         cpu_util = cpu / dt
         plt.plot(resources['time'][1:], cpu_util)
         plt.title(f"CPU Utilization\n{filename}")
         plt.ylabel("Utilization")
         plt.xlabel("Seconds")
+        plt.ylim((0.25, 0.65))
+        plt.tight_layout()
+        fig.savefig(f"figures/cpu-{filename}.png")
 
-        plt.figure()
+        fig = plt.figure()
         plt.plot(resources['time'], resources['memory'])
         plt.title(f"Memory Usage\n{filename}")
         plt.ylabel("Usage (MB)")
         plt.xlabel("Seconds")
+        fig.tight_layout()
+        fig.savefig(f"figures/mem-{filename}.png")
 
         fig, ax = plt.subplots()
         ingressInst = np.diff(resources['net']['ingress']) / dt
@@ -44,13 +50,17 @@ class ResourceParser:
         plt.ylabel("KB/s")
         plt.xlabel("Seconds")
         ax.legend(['Ingress', 'Egress'])
+        fig.tight_layout()
+        fig.savefig(f"figures/net-{filename}.png")
 
-        plt.figure()
-        plt.plot(resources['time'], resources['pkt']['drop'], '.')
-        plt.plot(resources['time'], resources['pkt']['err'], 'r-')
-        plt.title(f"Packet Drops and Errors\n{filename}")
-        plt.ylabel("count")
-        plt.xlabel("Seconds")
+        # fig = plt.figure()
+        # plt.plot(resources['time'], resources['pkt']['drop'], '.')
+        # plt.plot(resources['time'], resources['pkt']['err'], 'r-')
+        # plt.title(f"Packet Drops and Errors\n{filename}")
+        # plt.ylabel("count")
+        # plt.xlabel("Seconds")
+        # plt.tight_layout()
+        # fig.savefig(f"figures/pkt-{filename}.png")
 
     def parse_file(self, file):
         time = []
@@ -116,6 +126,7 @@ if __name__ == '__main__':
         print("usage: python plot_resource.py {file_or_dir}")
         exit()
 
+
     rPraser = ResourceParser()
 
     if os.path.isdir(path):
@@ -124,6 +135,7 @@ if __name__ == '__main__':
     else:
         files = [path]
 
+    os.makedirs(FIGURE_SAVE_DIR, exist_ok=True)
     cnt = 0
     for f in files:
         geth_log = re.search("^geth-service[0-9]*$", f)
@@ -134,7 +146,6 @@ if __name__ == '__main__':
             if cnt == MAX_FILES:
                 break
 
-    print("Hit Ctrl-c to close figures (you may need to click on a figure)")
-
+    # print("Hit Ctrl-c to close figures (you may need to click on a figure)")
     plt.tight_layout()
     plt.show()

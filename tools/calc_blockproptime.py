@@ -8,6 +8,9 @@ from operator import itemgetter
 import math
 from statistics import mean
 
+FIG_SAVE_DIR = "figures"
+
+
 def signal_handler(fig, frame):
     print("Ctrl+c detected, exiting and closing all plots...")
     sys.exit(0)
@@ -15,28 +18,30 @@ def signal_handler(fig, frame):
 
 class BlockPropagationParser:
     def __init__(self):
-        self.fig, self.ax = plt.subplots()
+        # self.fig, self.ax = plt.subplots()
         self.blocks = {}
         self.num_nodes = 0
         self.fifty_pct_times = []
         self.hundred_pct_times = []
 
-    def plot_block(self, utxo_set):
-        # total_balance = 0
-        # node, overall_tps = min(uParser.tps.items(), key=itemgetter(1))
-        # node, max_tps = max(uParser.tps.items(), key=itemgetter(1))
+    def plot_block_prop_times(self):
+        os.makedirs("figures", exist_ok=True)
+        plt.figure()
+        plt.title("100% Block Prop Times")
+        plt.ylabel("Milliseconds")
+        plt.xlabel("Block Index")
+        plt.plot(parser.hundred_pct_times, '.')
+        plt.tight_layout()
+        plt.savefig(f"{FIG_SAVE_DIR}/hundred_pct_times.png")
 
-        # for addr in utxo_set:
-        #     plt.plot(utxo_set[addr]['time'], utxo_set[addr]['count'])
-        #     plt.title("Total Balance of All Receive Addresses\n" +
-        #               "(one line per recieve addr)\n" +
-        #               "Network TPS: {}\n".format(overall_tps) +
-        #               "Max Measured TPS: {}".format(max_tps))
-        #     plt.ylabel("Balance (All Assets)")
-        #     plt.xlabel("Seconds")
-        #     total_balance += max(utxo_set[addr]['count'])
-        # self.total_end_balances.append(total_balance)
-        pass
+        plt.figure()
+        plt.title("51% Block Prop Times")
+        plt.ylabel("Milliseconds")
+        plt.xlabel("Block Index")
+        # plt.ylim((0, 300))
+        plt.plot(parser.fifty_pct_times, '.')
+        plt.tight_layout()
+        plt.savefig(f"{FIG_SAVE_DIR}/fifty_pct_times.png")
 
     def parse_file(self, file):
         # Assumes all log lines have a block hash value in its k-v pairs.
@@ -62,7 +67,8 @@ class BlockPropagationParser:
 
     def calc_prop_times(self):
         for hash, data in self.blocks.items():
-            if len(data["importTimes"]) >= (self.num_nodes - 1):
+            # the miner does not import the block, subtract 1
+            if len(data["importTimes"]) == (self.num_nodes - 1):
                 if data["mined"] == 0:
                     print("missing block mining time, skipping...")
                     continue
@@ -71,22 +77,30 @@ class BlockPropagationParser:
                 # The miner never prints out that it imports a segment, so we
                 # subract 1
                 half = math.ceil(self.num_nodes / 2) - 2
-                try: 
-                    fifty_pct = data["importTimes"][half] - data["mined"]
-                except IndexError:
-                    print(self.num_nodes)
+                fifty_pct = data["importTimes"][half] - data["mined"]
                 hundred_pct = data["importTimes"][self.num_nodes - 2] - data["mined"]
 
                 self.blocks[hash]["fifty_pct"] = fifty_pct
                 self.fifty_pct_times.append(fifty_pct)
                 self.blocks[hash]["hundred_pct"] = hundred_pct
                 self.hundred_pct_times.append(hundred_pct)
-    def count_final_blocks(self):
+
+    def seen_by_majority(self):
         cnt = 0
         for hash, data in self.blocks.items():
-            if len(data["importTimes"]) > 1:
+            if len(data["importTimes"]) > math.ceil(self.num_nodes / 2):
                 cnt += 1
         return cnt
+
+    def truncate_init_stats(self):
+        """Removes the first 10 block stats. Nodes generate Ethash DAG at
+        different times which invalidates the first handful of stats.
+
+        Note: python dicts are insertion ordered.
+        """
+        self.fifty_pct_times = self.fifty_pct_times[10:]
+        self.hundred_pct_times = self.hundred_pct_times[10:]
+
 
 
 if __name__ == '__main__':
@@ -97,7 +111,6 @@ if __name__ == '__main__':
         exit()
 
     parser = BlockPropagationParser()
-    parser.num_nodes = 30
 
     if os.path.isdir(path):
         files = os.listdir(path)
@@ -110,21 +123,35 @@ if __name__ == '__main__':
         if geth_log:
             try:
                 blockPropTimes = parser.parse_file(f)
+                parser.num_nodes += 1
             except FileNotFoundError:
                 # sometimes we are missing logs...
                 continue
 
+    actual_num_nodes = parser.num_nodes
+
+    """Force number of nodes here in case a node fails in a test. Parsing will
+    only take into account blocks if exactly `parser.num_nodes` nodes print
+    that a block was imported."""
+    # parser.num_nodes = 29
+
     parser.sort_import_times()
     parser.calc_prop_times()
-    b = json.dumps(parser.blocks, indent=4, ensure_ascii=False)
-    print(f"Blocks Considered Final: {parser.count_final_blocks()}")
-    print(f"Test ID: {sys.argv[1]}")
-    print(f"Total Blocks Seen: {len(parser.blocks)}")
-    print(f"Blocks considered final: {parser.count_final_blocks()}")
-    print(f"Blocks with Complete Stats: {len(parser.fifty_pct_times)}")
-    print(f"51% block propagation time avg: {mean(parser.fifty_pct_times)} ms")
-    print(f"100% block prop. time avg: {mean(parser.hundred_pct_times)} ms")
+    parser.truncate_init_stats()
+    parser.plot_block_prop_times()
 
-    print("Hit Ctrl-c to close figures (you may need to click on a figure)")
-    # plt.tight_layout()
+    # Uncomment this to inspect the dictionary of blocks
+    # b = json.dumps(parser.blocks, indent=4, ensure_ascii=False)
+    # print(b)
+
+    print(f"Test ID: {sys.argv[1]}")
+    print(f"Nodes: {actual_num_nodes}")
+    print(f"Total Blocks Seen: {len(parser.blocks)}")
+    print(f"Blocks imported by over 50% nodes: {parser.seen_by_majority()}")
+    print(f"Blocks stats with {parser.num_nodes} import times: {len(parser.fifty_pct_times)}")
+    print(f"51% block prop. time avg: {mean(parser.fifty_pct_times):.2f} ms")
+    print(f"100% block prop. time avg: {mean(parser.hundred_pct_times):.2f} ms")
+
+    # Uncomment to show the plots (they are also saved)
+    # print("Hit Ctrl-c to close figures (you may need to click on a figure)")
     # plt.show()

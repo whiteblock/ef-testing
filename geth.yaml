@@ -3,13 +3,14 @@ substitutions:
   _ETH_NETWORK_ID: "7777"
   _ACCOUNTS_TO_CREATE: "2"  # should be same as num. nodes
   _BA_PARAMETER: "1"
-  _GAS_LIMIT: 3000000
-  _TPS: 200                  # per node, pick sufficiently high rate for saturation 
-  _TX_SIZE: 3200
-  _CONCURRENT_NONCES: 2000    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
+  _GAS_LIMIT: 52000000
+  _GAS_TARGET: 47000000
+  _TPS: 12              # per node, pick sufficiently high rate for saturation 
+  _TX_SIZE: 6400
+  _CONCURRENT_NONCES: 150    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
 services: 
   - name: geth
-    image: "ethereum/client-go:alltools-latest"
+    image: "ethereum/client-go:alltools-v1.9.18"
     volumes:
       - path: /accounts/
         name: accounts
@@ -27,11 +28,12 @@ services:
         --http.addr 0.0.0.0
         --miner.gasprice=${MINER_GASPRICE}
         --miner.gaslimit=$_GAS_LIMIT
+        --miner.gastarget=$_GAS_TARGET
         --http.api "admin,web3,eth,net,personal,miner,txpool"
         --http.corsdomain "0.0.0.0"
         --txpool.nolocals
         --http.vhosts=*
-        --verbosity=5
+        --verbosity=3
         --port 30303
         --nousb
         --miner.etherbase $(cat /accounts/address${INDEX})
@@ -48,7 +50,7 @@ services:
       MINER_THREADS: "1"
     resources:
       cpus: 2
-      memory: 8 GB
+      memory: 6 GB
       storage: 40 GiB
   
   - name: record
@@ -56,6 +58,14 @@ services:
     script:
       inline: 
         app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545
+    resources:
+      memory: 1 GiB
+
+  - name: block-logger
+    image: gcr.io/whiteblock/helpers/ethereum/block-logger:master
+    script:
+      inline: 
+        app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545 --delay 10
     resources:
       memory: 1 GiB
 
@@ -99,7 +109,7 @@ sidecars:
         --destination $(cat /accounts/recvAddrs${INDEX}.json)
         --concurrent-nonces $_CONCURRENT_NONCES
     environment:
-      TX_GAS_PRICE: "4000000"
+      TX_GAS_PRICE: "3000000"
       TX_GAS_LIMIT: "5000000"
     resources:
       cpus: 2
@@ -123,9 +133,9 @@ task-runners:
       - path: /accounts/
         name: accounts
         scope: singleton
-    environment:
+#    environment:
     script:
-      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=1000000 | tee /accounts/genesis.json
+      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=500000 | tee /accounts/genesis.json
     resources:
       memory: 2 GB
   - name: generate-static-peers
@@ -198,7 +208,7 @@ tests:
             resources:
               networks:
                 - name: common-network
-                  bandwidth: 100 Mbit
+#                  bandwidth: 100 Mbit
       
       - name: awaiting-block-production
         tasks:
@@ -217,10 +227,15 @@ tests:
               - name: common-network
 
       - name: start-custom-viewers
+        duration: 120m #wait 120 minutes before checking for tx completion
         system:
         - type: tps-logger 
           port-mappings:
             - "17777:17777"
+          resources:
+            networks:
+              - name: common-network
+        - type: block-logger
           resources:
             networks:
               - name: common-network

@@ -1,3 +1,4 @@
-/normal/test
-/normal/normal
-stats/
+tools/*-*-*-*-*/
+tools/*-*-*-*-*.stats
+tools/rstats*
+tools/*.log
