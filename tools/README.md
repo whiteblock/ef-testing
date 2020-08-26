@@ -1,10 +1,21 @@
 ## Tools
 
-#### Notes
+#### Workflow to Parse Test Logs
 
- * Run `parser` on the syslog-ng logs on the server. It will extract only the 
- log lines of interest.
- * See `dl_logs.sh` for scp commands to download the folder of parsed logs. 
+ * Make copy of syslog-ng logs into the `backup/` folder
+ * Make sure the rstats file is in the format `{TEST_ID}.stats`
+ * On the logs instance:
+    * `./parser -t 18f086eb-4269-4034-a449-2e4865c81871 ef-test-18f086eb.log`
+    * Takes awhile
+ * On your local machine:
+    * Set `TEST_ID` in `dl_logs.sh`
+    * `bash dl_logs.sh`
+    * `./resources -s 18f086eb-4269-4034-a449-2e4865c81871.stats rstats-18f086eb-4269-4034-a449-2e4865c81871`
+    * `python calc_blockproptime.py 18f086eb-4269-4034-a449-2e4865c81871/`
+        * Note: uncomment lines in `calc_blockproptime.py` to account for failed 
+          nodes, show plot_resources, or inspect data.
+    * `python plot_resources.py rstats-18f086eb-4269-4034-a449-2e4865c81871`
+
 
 #### syslogng parsing example
 
@@ -27,12 +38,12 @@ Build cadvisor resource processor from source
     make
     mv bin/resources ../  #move it to the same place as `parser`
     ./resources 42a8799e-7881-4430-9dbb-ed304d1bd224.stat -s rstat-42a8799e-7881-4430-9dbb-ed304d1bd224/
-    python plot_resources.py rstat-42a8799e-7881-4430-9dbb-ed304d1bd224/
+    python plot_resources.py rstats-42a8799e-7881-4430-9dbb-ed304d1bd224/
     # set var MAX_FILES to limit how many graphs to show
 
 You can also run plot_resources.py on a single file:
     
-    python plot_resources.py stat-42a8799e-7881-4430-9dbb-ed304d1bd224/geth-service55
+    python plot_resources.py rstat-42a8799e-7881-4430-9dbb-ed304d1bd224/geth-service55
 
 #### Geth Log Lines of Interest
 
