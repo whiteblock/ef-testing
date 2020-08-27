@@ -58,7 +58,7 @@ services:
     image: gcr.io/whiteblock/helpers/ethereum/record:master
     script:
       inline: 
-        app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545
+        app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545 --start-block 10
     resources:
       memory: 1 GiB
 
