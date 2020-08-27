@@ -2,7 +2,7 @@ local:
 	genesis local geth.yaml
 
 prod:
-	genesis run geth-prod.yaml --json paccode
+	genesis run test-yaml/1a-40k.yaml --json paccode
 
 dev:
 	genesis run geth-prod.yaml --dev --json paccode
@@ -14,7 +14,7 @@ teardown:
 	genesis local teardown
 
 lint:
-	@for f in $(shell ls *.yaml); do echo -- $${f}; genesis lint $${f}; done
+	@for f in $(shell ls test-yaml/*.yaml); do echo -- $${f}; genesis lint $${f}; done
 
 pull:
 	docker pull gcr.io/whiteblock/helpers/ethereum/accounts:master

@@ -1,11 +1,12 @@
 substitutions:
+  _TEST_ID: "bc45c962-e9eb-4b24-9779-522708a8094e"
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
-  _ACCOUNTS_TO_CREATE: "30"  # should be same as num. nodes
+  _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
   _BA_PARAMETER: "10"
   _GAS_LIMIT:  30000000
   _GAS_TARGET: 29375000
-  _TPS: 10  # per node, pick sufficiently high rate for saturation 
+  _TPS: 4  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
   _CONCURRENT_NONCES: 150    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
 services:
@@ -205,12 +206,12 @@ tests:
       - name: starting-geth-nodes
         system:
           - type: geth
-            count: 30 # <---------------------------------------------
+            count: 90 # <---------------------------------------------
             resources:
               networks:
                 - name: common-network
                   bandwidth: 100 Mbit
-                  latency: 50 ms
+#                  latency: 50 ms
       
       - name: awaiting-block-production
         tasks:
