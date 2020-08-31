@@ -1,12 +1,16 @@
 substitutions:
-  _TEST_ID: "3f5fae18-23ad-4d24-9a82-49166963df92"
-  _TEST_STATS: '{"difficulty":{"max":55000000,"standardDeviation":319727.0028342961,"mean":50843863.57011493},"totalDifficulty":{"max":22117080653,"standardDeviation":6393444486.329166,"mean":11088041315.572418},"gasLimit":{"max":3263888,"standardDeviation":1025.9519124160402,"mean":3263708.2666666657},"gasUsed":{"max":2730032,"standardDeviation":260352.04018576222,"mean":2702511.8528735656},"blockTime":{"max":424,"standardDeviation":24.475162416275904,"mean":14.24249422632794},"blockSize":{"max":40650,"standardDeviation":3728.2905074845303,"mean":39224.933333333305},"transactionPerBlock":{"max":6,"standardDeviation":0.5727045377110815,"mean":5.944827586206896},"uncleCount":{"max":2,"standardDeviation":0.11708350876548818,"mean":0.009195402298850562},"tps":{"max":6,"standardDeviation":1.7059940125684938,"mean":1.3734536011308631},"blocks":435}'
+  _TEST0_ID: "401386af-5372-49d4-943c-cfce3a599fd3"
+  _TEST0_STATS: '{"difficulty":{"max":51232327,"standardDeviation":322351.30061801703,"mean":50600208.384615384},"totalDifficulty":{"max":21556875569,"standardDeviation":6083888254.6749,"mean":11029019693.468748},"gasLimit":{"max":3300000,"standardDeviation":0,"mean":3300000},"gasUsed":{"max":3184696,"standardDeviation":826.2793200806435,"mean":3182237.8461538446},"blockTime":{"max":73,"standardDeviation":12.193133953360265,"mean":12.460240963855417},"blockSize":{"max":46624,"standardDeviation":45.41461051454482,"mean":46088.90865384612},"transactionPerBlock":{"max":7,"standardDeviation":0,"mean":7},"uncleCount":{"max":1,"standardDeviation":0.08461401878268289,"mean":0.007211538461538454},"tps":{"max":7,"standardDeviation":2.085799801953715,"mean":1.7255491734876276},"blocks":416}'
+  _TEST0_DATE: "2020-08-29"
+  _TEST1_ID: "959a4a1c-30e0-4d58-97b9-2b2f8f3479a2"
+  _TEST1_STATS: '{"difficulty":{"max":51406971,"standardDeviation":243356.2090683973,"mean":50776546.826923095},"totalDifficulty":{"max":21636738798,"standardDeviation":6089450361.221865,"mean":11083101326.019236},"gasLimit":{"max":3300000,"standardDeviation":0,"mean":3300000},"gasUsed":{"max":3184376,"standardDeviation":819.0942609272767,"mean":3182249.23076923},"blockTime":{"max":75,"standardDeviation":12.396431385873099,"mean":12.11325301204819},"blockSize":{"max":46623,"standardDeviation":45.414566999035706,"mean":46088.913461538454},"transactionPerBlock":{"max":7,"standardDeviation":0,"mean":7},"uncleCount":{"max":1,"standardDeviation":0.0846140187826829,"mean":0.007211538461538465},"tps":{"max":7,"standardDeviation":2.1759203216782947,"mean":1.8567652537156316},"blocks":416}'
+  _TEST1_DATE: "2020-08-30"
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
   _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
   _BA_PARAMETER: "10"
-  _GAS_LIMIT:  3263888
-  _GAS_TARGET: 2937500
+  _GAS_LIMIT:  3300000
+  _GAS_TARGET: 2950000
   _TPS: 4  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
   _CONCURRENT_NONCES: 75    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
