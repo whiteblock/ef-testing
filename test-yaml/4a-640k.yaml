@@ -1,6 +1,6 @@
 substitutions:
-  _TEST0_ID: ""
-  _TEST0_STATS: ''
+  _TEST0_ID: "23ff2419-15ab-4134-8be4-a187b3e4426e"
+  _TEST0_STATS: '{"difficulty":{"max":51349496,"standardDeviation":258302.7216297607,"mean":50828393.38942308},"totalDifficulty":{"max":21656057691,"standardDeviation":6114397291.214697,"mean":11106170955.144234},"gasLimit":{"max":45450000,"standardDeviation":0,"mean":45450000},"gasUsed":{"max":45014936,"standardDeviation":3067.474415531482,"mean":45005580.307692364},"blockTime":{"max":89,"standardDeviation":12.744934810851309,"mean":13.01927710843373},"blockSize":{"max":645379,"standardDeviation":106.57958063427122,"mean":644780.3173076925},"transactionPerBlock":{"max":99,"standardDeviation":0,"mean":99},"uncleCount":{"max":1,"standardDeviation":0.15316858001994227,"mean":0.024038461538461547},"tps":{"max":99,"standardDeviation":27.64132477397484,"mean":22.849888381783458},"blocks":416}'
   _TEST0_DATE: "2020-09-01"
   _TEST1_ID: ""
   _TEST1_STATS: ''
