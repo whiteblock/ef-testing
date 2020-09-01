@@ -1,6 +1,6 @@
 substitutions:
-  _TEST0_ID: "a2af5fd6-180e-483a-83a9-29e49644625d"
-  _TEST0_STATS: '{"difficulty":{"max":50854369,"standardDeviation":168052.16694669868,"mean":50467362.44976079},"totalDifficulty":{"max":21603870919,"standardDeviation":6087226445.597183,"mean":11073222487.033503},"gasLimit":{"max":45450000,"standardDeviation":0,"mean":45450000},"gasUsed":{"max":45016920,"standardDeviation":2978.8793163033097,"mean":45005538.25837323},"blockTime":{"max":111,"standardDeviation":12.845127145168032,"mean":12.575539568345324},"blockSize":{"max":645278,"standardDeviation":84.181258948713,"mean":644781.4904306218},"transactionPerBlock":{"max":99,"standardDeviation":0,"mean":99},"uncleCount":{"max":1,"standardDeviation":0.09735401889653499,"mean":0.009569377990430613},"tps":{"max":99,"standardDeviation":28.56612235284396,"mean":23.883088154942264},"blocks":418}'
+  _TEST0_ID: "c00609ce-93b1-4d78-ace6-367b130cc6b1"
+  _TEST0_STATS: '{"difficulty":{"max":50628059,"standardDeviation":330267.8714755452,"mean":50069764.57377049},"totalDifficulty":{"max":21890213978,"standardDeviation":6171565865.9023485,"mean":11262878372.695555},"gasLimit":{"max":45450000,"standardDeviation":0,"mean":45450000},"gasUsed":{"max":45015576,"standardDeviation":3192.373019192884,"mean":45005469.84543327},"blockTime":{"max":124,"standardDeviation":13.180650629426845,"mean":13.436619718309856},"blockSize":{"max":645380,"standardDeviation":86.79988623384867,"mean":644775.2318501176},"transactionPerBlock":{"max":99,"standardDeviation":0,"mean":99},"uncleCount":{"max":1,"standardDeviation":0.08352484543385015,"mean":0.007025761124121775},"tps":{"max":99,"standardDeviation":26.382594696239366,"mean":21.042140797328152},"blocks":427}'
   _TEST0_DATE: "2020-09-01"
   _TEST1_ID: ""
   _TEST1_STATS: ''
@@ -216,7 +216,7 @@ tests:
               networks:
                 - name: common-network
                   bandwidth: 100 Mbit
-                  packet-loss: .5
+                  packet-loss: .1
       - name: awaiting-block-production
         tasks:
           - type: await-block-production
