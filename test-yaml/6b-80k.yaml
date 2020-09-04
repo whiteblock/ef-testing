@@ -1,16 +1,16 @@
 substitutions:
-  _TEST0_ID: "a9530a40-c63c-4015-954c-a0ea87ed065a"
-  _TEST0_STATS: '{"difficulty":{"max":51541451,"standardDeviation":496313.73504470097,"mean":50617553.58612438},"totalDifficulty":{"max":21665844286,"standardDeviation":6102214087.174406,"mean":11056053820.468904},"gasLimit":{"max":3300000,"standardDeviation":0,"mean":3300000},"gasUsed":{"max":3184888,"standardDeviation":838.7156138188288,"mean":3182135.8468899517},"blockTime":{"max":64,"standardDeviation":11.516091905092413,"mean":11.40767386091127},"blockSize":{"max":46625,"standardDeviation":26.392136749684344,"mean":46086.33971291864},"transactionPerBlock":{"max":7,"standardDeviation":0,"mean":7},"uncleCount":{"max":1,"standardDeviation":0.0488530570733544,"mean":0.0023923444976076554},"tps":{"max":7,"standardDeviation":2.1611337092651013,"mean":1.8788276328903841},"blocks":418}'
+  _TEST0_ID: ""
+  _TEST0_STATS: ''
   _TEST0_DATE: "2020-09-04"
-  _TEST1_ID: "1ab5099d-b3aa-45f1-9061-b559231c13d5"
+  _TEST1_ID: ""
   _TEST1_STATS: ''
   _TEST1_DATE: "2020-09-04"
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
   _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
   _BA_PARAMETER: "4"
-  _GAS_LIMIT:  3300000
-  _GAS_TARGET: 2950000
+  _GAS_LIMIT:  5900000
+  _GAS_TARGET: 5500000
   _TPS: 4  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
   _CONCURRENT_NONCES: 75    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
