@@ -2,7 +2,7 @@ local:
 	genesis local geth.yaml
 
 prod:
-	genesis run test-yaml/6b-160k.yaml --json paccode
+	genesis run test-yaml/6b-640k.yaml --json paccode
 
 dev:
 	genesis run geth-prod.yaml --dev --json paccode

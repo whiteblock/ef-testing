@@ -4,25 +4,22 @@ import (
     "fmt"
     "os"
 	"os/exec"
-	"net"
+	_ "net"
 	_"strings"
     "path/filepath"
 	log "github.com/sirupsen/logrus"
 )
 
-func GetOutboundIP() {
-	addrs, err := net.InterfaceAddrs()
+func getExternalIP() (string, error){
+	cmd := exec.Command("curl", "-s", "ifconfig.so")
+    out, err := cmd.CombinedOutput()
 	if err != nil {
-		os.Stderr.WriteString("Oops: " + err.Error() + "\n")
-		os.Exit(1)
-	}
+		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to set external IP.")
+		return "", fmt.Errorf("Unable to set genesis external IP.")
 
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				os.Stdout.WriteString(ipnet.IP.String() + "\n")
-			}
-		}
+	} else {
+/*		fmt.Println(out)*/
+		return string(out), nil
 	}
 }
 
@@ -37,35 +34,34 @@ func setSyslogng(ip string) error {
 	} else {
 		return nil
 	}
-
 }
 
-func main() {
-	ip := [][]string{
-		[]string{"logs","logs-1"},
-		[]string{"35.222.228.109","35.238.243.210"},
-	}
-	
-/*
-	host, err := os.Hostname()
-	if err != nil {
-		panic(err)
-	}
-*/
-
-	fmt.Println("hostname:", ip[0][0])
+func getYamlFiles(file_path string) []string {
 
     var files []string
 
-    root := "/var/log/syslog-ng/ef-testing/test-yaml"
-    err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+    err := filepath.Walk(file_path, func(path string, info os.FileInfo, err error) error {
         files = append(files, path)
         return nil
     })
     if err != nil {
         panic(err)
     }
-    for _, file := range files {
+    return files
+
+}
+
+func main() {
+	ip, err := getExternalIP()
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("Unable to get external IP exiting now.")
+		return 
+	}
+
+	fmt.Println(ip)	
+	files_yaml := getYamlFiles("/var/log/syslog-ng/ef-testing/test-yaml")
+    for _, file := range files_yaml {
         fmt.Println(file)
     }
+
 }
