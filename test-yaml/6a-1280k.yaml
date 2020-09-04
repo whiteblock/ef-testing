@@ -1,16 +1,16 @@
 substitutions:
-  _TEST0_ID: "14a93826-ed30-47c0-93b3-81abf679d3e3"
-  _TEST0_STATS: '{"difficulty":{"max":50430443,"standardDeviation":282450.4401579336,"mean":49761677.34855768},"totalDifficulty":{"max":21204887264,"standardDeviation":5975339360.438921,"mean":10858937909.230772},"gasLimit":{"max":45450000,"standardDeviation":0,"mean":45450000},"gasUsed":{"max":45015320,"standardDeviation":3152.5278595641266,"mean":45005624.3076923},"blockTime":{"max":94,"standardDeviation":12.189750090053012,"mean":12.8289156626506},"blockSize":{"max":645381,"standardDeviation":123.61072733288451,"mean":644796.1033653844},"transactionPerBlock":{"max":99,"standardDeviation":0,"mean":99},"uncleCount":{"max":1,"standardDeviation":0.1979782941527209,"mean":0.040865384615384616},"tps":{"max":99,"standardDeviation":26.299093294918286,"mean":21.217953367672642},"blocks":416}'
+  _TEST0_ID: ""
+  _TEST0_STATS: ''
   _TEST0_DATE: "2020-09-02"
-  _TEST1_ID: "cb96be8c-c8b5-4628-974e-ae6f519115a4"
-  _TEST1_STATS: '{"difficulty":{"max":50664374,"standardDeviation":152517.51438241225,"mean":50297167.52884616},"totalDifficulty":{"max":21435436980,"standardDeviation":6039444716.904569,"mean":11005962545.713942},"gasLimit":{"max":45450000,"standardDeviation":0,"mean":45450000},"gasUsed":{"max":45015000,"standardDeviation":3128.508077806737,"mean":45005345.23076927},"blockTime":{"max":94,"standardDeviation":12.611080893429563,"mean":13.106024096385545},"blockSize":{"max":645380,"standardDeviation":119.94215005646744,"mean":644794.7788461538},"transactionPerBlock":{"max":99,"standardDeviation":0,"mean":99},"uncleCount":{"max":1,"standardDeviation":0.1803365320529909,"mean":0.033653846153846145},"tps":{"max":99,"standardDeviation":24.72100590951256,"mean":20.61019846947493},"blocks":416}'
+  _TEST1_ID: ""
+  _TEST1_STATS: ''
   _TEST1_DATE: "2020-09-02"
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
   _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
   _BA_PARAMETER: "2"
-  _GAS_LIMIT:  45450000
-  _GAS_TARGET: 45000000
+  _GAS_LIMIT:  90950000
+  _GAS_TARGET: 90500000
   _TPS: 4  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
   _CONCURRENT_NONCES: 75    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
