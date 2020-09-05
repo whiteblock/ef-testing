@@ -1,16 +1,16 @@
 substitutions:
-  _TEST0_ID: "29571a4b-96dd-4ecc-a1e7-1b4781cd7b60"
-  _TEST0_STATS: '{"difficulty":{"max":51420969,"standardDeviation":232103.18561146804,"mean":51006887.11876486},"totalDifficulty":{"max":21985196273,"standardDeviation":6206141307.256101,"mean":11254651326.064129},"gasLimit":{"max":45450000,"standardDeviation":2427.1493925911996,"mean":45449837.49406176},"gasUsed":{"max":45014488,"standardDeviation":2190819.3380644047,"mean":44898387.68646081},"blockTime":{"max":86,"standardDeviation":12.68127044824003,"mean":12.645238095238096},"blockSize":{"max":645381,"standardDeviation":31361.21329000571,"mean":643250.5558194775},"transactionPerBlock":{"max":99,"standardDeviation":4.819231001567697,"mean":98.76484560570071},"uncleCount":{"max":1,"standardDeviation":0.10833020666025062,"mean":0.011876484560570076},"tps":{"max":99,"standardDeviation":27.960795107575734,"mean":23.109501256774035},"blocks":421}'
+  _TEST0_ID: "670e1118-5620-4c91-8560-eafd14c73048"
+  _TEST0_STATS: '{"difficulty":{"max":51735906,"standardDeviation":380568.83564235026,"mean":51032677.45913462},"totalDifficulty":{"max":21741954194,"standardDeviation":6130627923.336184,"mean":11113076808.052883},"gasLimit":{"max":90950000,"standardDeviation":4871.581975511695,"mean":90949675.22596155},"gasUsed":{"max":90477624,"standardDeviation":4430086.843441511,"mean":90247681.40384609},"blockTime":{"max":73,"standardDeviation":12.105368910211508,"mean":12.383132530120482},"blockSize":{"max":1296180,"standardDeviation":63418.58027371466,"mean":1292471.5624999998},"transactionPerBlock":{"max":199,"standardDeviation":9.74504377092598,"mean":198.5216346153846},"uncleCount":{"max":1,"standardDeviation":0.1739926363384381,"mean":0.03125000000000001},"tps":{"max":199,"standardDeviation":46.51935104267803,"mean":40.95781489336262},"blocks":416}'
   _TEST0_DATE: "2020-09-04"
-  _TEST1_ID: "c4a8f835-4af8-49ed-984d-6235d0d51509"
-  _TEST1_STATS: '{"difficulty":{"max":51753706,"standardDeviation":469875.31132594764,"mean":50771735.53395781},"totalDifficulty":{"max":22187871218,"standardDeviation":6255257469.68044,"mean":11318794722.163935},"gasLimit":{"max":45450000,"standardDeviation":2409.9961778445672,"mean":45449839.80327869},"gasUsed":{"max":45015448,"standardDeviation":2175421.9799709283,"mean":44900160.86182672},"blockTime":{"max":90,"standardDeviation":11.68830141834418,"mean":11.652582159624414},"blockSize":{"max":645381,"standardDeviation":31141.233202639465,"mean":643284.339578454},"transactionPerBlock":{"max":99,"standardDeviation":4.785332497926179,"mean":98.76814988290401},"uncleCount":{"max":1,"standardDeviation":0.14364202552876493,"mean":0.02107728337236534},"tps":{"max":99,"standardDeviation":27.528842849966633,"mean":23.423913405443145},"blocks":427}'
+  _TEST1_ID: "284f67a9-eae3-478c-bae1-d1bd7e8008bd"
+  _TEST1_STATS: '{"difficulty":{"max":50643818,"standardDeviation":160650.85255267614,"mean":50275240.23150358},"totalDifficulty":{"max":21574875966,"standardDeviation":6074478944.9847975,"mean":11063854109.090696},"gasLimit":{"max":90950000,"standardDeviation":0,"mean":90950000},"gasUsed":{"max":90481976,"standardDeviation":4528.991795476039,"mean":90465298.42482093},"blockTime":{"max":74,"standardDeviation":12.71305934593233,"mean":12.686602870813397},"blockSize":{"max":1296719,"standardDeviation":159.51454026910022,"mean":1295596.1670644402},"transactionPerBlock":{"max":199,"standardDeviation":0,"mean":199},"uncleCount":{"max":2,"standardDeviation":0.2090452357084313,"mean":0.0405727923627685},"tps":{"max":199,"standardDeviation":51.128341099309395,"mean":43.58866030853271},"blocks":419}'
   _TEST1_DATE: "2020-09-04"
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
   _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
   _BA_PARAMETER: "4"
-  _GAS_LIMIT:  45450000
-  _GAS_TARGET: 45000000
+  _GAS_LIMIT:  90950000
+  _GAS_TARGET: 90500000
   _TPS: 4  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
   _CONCURRENT_NONCES: 75    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
