@@ -1,9 +1,9 @@
 substitutions:
-  _TEST0_ID: ""
-  _TEST0_STATS: ''
+  _TEST0_ID: "670e1118-5620-4c91-8560-eafd14c73048"
+  _TEST0_STATS: '{"difficulty":{"max":51735906,"standardDeviation":380568.83564235026,"mean":51032677.45913462},"totalDifficulty":{"max":21741954194,"standardDeviation":6130627923.336184,"mean":11113076808.052883},"gasLimit":{"max":90950000,"standardDeviation":4871.581975511695,"mean":90949675.22596155},"gasUsed":{"max":90477624,"standardDeviation":4430086.843441511,"mean":90247681.40384609},"blockTime":{"max":73,"standardDeviation":12.105368910211508,"mean":12.383132530120482},"blockSize":{"max":1296180,"standardDeviation":63418.58027371466,"mean":1292471.5624999998},"transactionPerBlock":{"max":199,"standardDeviation":9.74504377092598,"mean":198.5216346153846},"uncleCount":{"max":1,"standardDeviation":0.1739926363384381,"mean":0.03125000000000001},"tps":{"max":199,"standardDeviation":46.51935104267803,"mean":40.95781489336262},"blocks":416}'
   _TEST0_DATE: "2020-09-04"
-  _TEST1_ID: ""
-  _TEST1_STATS: ''
+  _TEST1_ID: "284f67a9-eae3-478c-bae1-d1bd7e8008bd"
+  _TEST1_STATS: '{"difficulty":{"max":50643818,"standardDeviation":160650.85255267614,"mean":50275240.23150358},"totalDifficulty":{"max":21574875966,"standardDeviation":6074478944.9847975,"mean":11063854109.090696},"gasLimit":{"max":90950000,"standardDeviation":0,"mean":90950000},"gasUsed":{"max":90481976,"standardDeviation":4528.991795476039,"mean":90465298.42482093},"blockTime":{"max":74,"standardDeviation":12.71305934593233,"mean":12.686602870813397},"blockSize":{"max":1296719,"standardDeviation":159.51454026910022,"mean":1295596.1670644402},"transactionPerBlock":{"max":199,"standardDeviation":0,"mean":199},"uncleCount":{"max":2,"standardDeviation":0.2090452357084313,"mean":0.0405727923627685},"tps":{"max":199,"standardDeviation":51.128341099309395,"mean":43.58866030853271},"blocks":419}'
   _TEST1_DATE: "2020-09-04"
   _ACCOUNT_PASSWORD: "password"
   _ETH_NETWORK_ID: "7777"
