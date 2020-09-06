@@ -16,10 +16,10 @@ import (
 )
 
 type TestEnv struct {
-	TimeBegin 	 string
-	TimeEnd 	 string
-	TestID		 string
-	WebStats	 string	
+	TimeBegin 	 int64	`json:"timeBegin"`
+	TimeEnd 	 int64	`json:"timeEnd"`
+	TestID		 string	`json:"testID"`
+	WebStats	 string	`json:"webStats"`
 }
 
 type SysEnv struct {
@@ -30,6 +30,7 @@ type SysEnv struct {
 	pathSyslogNG string
 	efLog  		 string
 	pathLog  	 string
+	autoExecLog	 string
 	pathYaml	 string
 	externalIP	 string
 	webStats	 string
@@ -40,9 +41,10 @@ func (test *SysEnv) setDefaults() {
 	test.pathSyslogNG = "/var/log/syslog-ng/"
 	test.efLog 		  = "ef-test.log"
 	test.pathLog 	  = "autoexec-log/"
+	test.autoExecLog  = "autoexec.log"
 	test.pathYaml	  = "/var/log/syslog-ng/ef-testing/autoexec-yaml"
 	test.externalIP	  = ""
-	test.webStats	  = ""
+	test.webStats	  = `{"difficulty":{"max":55000000,"standardDeviation":427516.00232242176,"mean":51202982.53106213},"totalDifficulty":{"max":25550288283,"standardDeviation":7391818514.634528,"mean":12768191452.43888},"gasLimit":{"max":11850000,"standardDeviation":595.7486135081332,"mean":11849961.018036073},"gasUsed":{"max":11371336,"standardDeviation":508257.5740591193,"mean":11342176.352705412},"blockTime":{"max":631,"standardDeviation":30.57527317048098,"mean":13.160965794768613},"blockSize":{"max":163758,"standardDeviation":7276.488035583049,"mean":162884.8316633266},"transactionPerBlock":{"max":25,"standardDeviation":1.1180317437084863,"mean":24.949899799599194},"uncleCount":{"max":1,"standardDeviation":0.09959738388608554,"mean":0.010020040080160317},"tps":{"max":25,"standardDeviation":7.716263384080033,"mean":6.520443852228358},"blocks":499}`
 }
 
 func (test *SysEnv) getGenesisAccount() error {
@@ -212,7 +214,7 @@ func (test *SysEnv) cleanUp(err int) error {
 		fmt.Println(cmd)
 		out, ok = cmd.CombinedOutput()
 		if ok != nil {
-			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to create new NG log file for current genesis test: "+test.testID)
+			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to create new NG log file for current genesis test: "+test.testID)
 			return fmt.Errorf("Unable to create new NG log file for current genesis test: "+test.testID)
 
 		} 
@@ -223,15 +225,34 @@ func (test *SysEnv) cleanUp(err int) error {
 		fmt.Println(cmd)
 		out, ok = cmd.CombinedOutput()
 		if ok != nil {
-			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to clear NG logs for current genesis test: "+test.testID)
+			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to clear NG logs for current genesis test: "+test.testID)
 			return fmt.Errorf("Unable to clear NG logs for current genesis test: "+test.testID)
 
 		} 
 	}
 	
 	// Write test.webStats data to file
-	jsonTest, _ := json.Marshal(&test)
-	fmt.Println(string(jsonTest))
+	file, ok := os.OpenFile(test.pathSyslogNG+test.pathLog+test.autoExecLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if ok != nil {
+		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to open autoexec log for current genesis test: "+test.testID)
+		return fmt.Errorf("Unable to open autoexec log for current genesis test: "+test.testID)
+	}
+	
+	time_now := time.Now()
+	logStats := TestEnv{}
+	logStats.TimeBegin 	 = test.timeBegin
+	logStats.TimeEnd 	 = time_now.Unix()
+	logStats.TestID		 = test.testID
+	logStats.WebStats	 = test.webStats
+
+	jsonTest, _ := json.Marshal(logStats)
+	if _, err := file.WriteString(string(jsonTest)); err != nil {
+		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to write to autoexec log for current genesis test: "+test.testID)
+		return fmt.Errorf("Unable to write to autoexec log for current genesis test: "+test.testID)
+	}
+
+	file.Close()
+/*	fmt.Println(string(jsonTest))*/
 /*	fmt.Println(test)*/
 return nil
 }
@@ -246,7 +267,6 @@ func main() {
 		return 
 	}
 	file := getYamlFiles(test.pathYaml)
-/*    for _, file := range files_yaml {*/
     for i := 1; i < len(file); i++ {
 		done := make(chan bool, 1)
     	// Set genesis settings set syslogng-host
