@@ -154,7 +154,6 @@ return nil
 
 func (test *SysEnv) monitorWebData() error {
 	statsURL := "http://"+test.webDataURL
-	
 	for {
 		resp, err := http.Get(statsURL)
 		if err != nil {
@@ -181,15 +180,22 @@ return nil
 }
 
 func (test *SysEnv) startRstats() error {
-	// genesis stats cad --json -t 670e1118-5620-4c91-8560-eafd14c73048  >> /var/log/syslog-ng/test-ef/670e1118-5620-4c91-8560-eafd14c73048.stats
+	// genesis stats cad --json -t 670e1118-5620-4c91-8560-eafd14c73048  >> /var/log/syslog-ng/autoexec-log/670e1118-5620-4c91-8560-eafd14c73048.stats
 	cmd := exec.Command("genesis", "stats", "cad", "-t", test.testID, "--json", ">>", test.pathSyslogNG+test.pathLog+test.testID+".stats")
 	err := cmd.Start()
-	fmt.Println(cmd)
 	if err != nil {
 		log.WithFields(log.Fields{"cmd": cmd, "error": err}).Error("Unable to start RSTATS process.")
 		return fmt.Errorf("Unable to start RSTATS process.")
 	} 
+	fmt.Println(cmd)
 	test.rstatsPID = cmd.Process.Pid
+	
+/*
+	go func() { 
+			err := cmd.Wait()
+			log.WithFields(log.Fields{"cmd": cmd, "error": err}).Error("Unable to execute RSTATS process.")
+		}()
+*/
 return nil
 }
 
@@ -279,7 +285,8 @@ func (test *SysEnv) cleanUp(test_err int) error {
 
 	jsonTest, _ := json.Marshal(logStats)
 	fmt.Println(string(jsonTest))
-	if _, err := file.WriteString(string(jsonTest)); err != nil {
+	line := string(jsonTest)+"\n"
+	if _, err := file.WriteString(line); err != nil {
 		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to write to autoexec log for current genesis test: "+test.testID)
 		return fmt.Errorf("Unable to write to autoexec log for current genesis test: "+test.testID)
 	}
