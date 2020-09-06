@@ -39,8 +39,8 @@ type SysEnv struct {
 func (test *SysEnv) setDefaults() {
 	test.pathSyslogNG = "/var/log/syslog-ng/"
 	test.efLog 		  = "ef-test.log"
-	test.pathLog 	  = "test-ef/"
-	test.pathYaml	  = "/home/billhamilton/test/ef-testing/test-yaml"
+	test.pathLog 	  = "autoexec-log/"
+	test.pathYaml	  = "/var/log/syslog-ng/ef-testing/autoexec-yaml"
 	test.externalIP	  = ""
 	test.webStats	  = ""
 }
@@ -187,7 +187,11 @@ func (test *SysEnv) cleanUp(err int) error {
 		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to stop current genesis test.")
 		return fmt.Errorf("Unable to stop current genesis test: "+test.testID)
 
-	} 
+	}
+	
+	// give the NG && RSTATS logs 30 seconds to catch up
+	time.Sleep(30 * time.Second)
+	
 	// kill RSTATS collection
 	// ***********************
 	
@@ -204,20 +208,31 @@ func (test *SysEnv) cleanUp(err int) error {
 			return fmt.Errorf("Unable to copy NGlog data to stats directory: "+test.testID)
 
 		} 
-	}
-	// clear data from current syslog-ng/ef-test.log file
-	cmd = exec.Command(">", test.pathSyslogNG+test.efLog)
-	fmt.Println(cmd)
-/*
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.WithFields(log.Fields{"ip_address": ip, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to stop current genesis test.")
-		return fmt.Errorf("Unable to stop current genesis test: "+test.testID)
+		cmd = exec.Command("touch", test.pathSyslogNG+test.efLog)
+		fmt.Println(cmd)
+		out, ok = cmd.CombinedOutput()
+		if ok != nil {
+			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to create new NG log file for current genesis test: "+test.testID)
+			return fmt.Errorf("Unable to create new NG log file for current genesis test: "+test.testID)
 
-	} 
-*/
-	// Write test.webStats data to file
+		} 
+	} else { // there mus have been an error so clear the NG log data
+
+		// clear data from current syslog-ng/ef-test.log file
+		cmd = exec.Command(">", test.pathSyslogNG+test.efLog)
+		fmt.Println(cmd)
+		out, ok = cmd.CombinedOutput()
+		if ok != nil {
+			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to clear NG logs for current genesis test: "+test.testID)
+			return fmt.Errorf("Unable to clear NG logs for current genesis test: "+test.testID)
+
+		} 
+	}
 	
+	// Write test.webStats data to file
+	jsonTest, _ := json.Marshal(&test)
+	fmt.Println(string(jsonTest))
+/*	fmt.Println(test)*/
 return nil
 }
 
@@ -233,8 +248,6 @@ func main() {
 	file := getYamlFiles(test.pathYaml)
 /*    for _, file := range files_yaml {*/
     for i := 1; i < len(file); i++ {
-        fmt.Println(file[i])
-		continue
 		done := make(chan bool, 1)
     	// Set genesis settings set syslogng-host
     	err = setSyslogng(test.externalIP)
@@ -269,7 +282,6 @@ func main() {
 			return 
     	}
 */
-    	fmt.Println(test)
 /*
     	err = test.monitorWebData()
     	if err != nil {
@@ -279,13 +291,11 @@ func main() {
 */
 		
   		<-done  	
-/*
     	err = test.cleanUp(0)
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to clean up after test.")
 			return 
     	}
-*/
         fmt.Println(file)
     }
 }
