@@ -25,7 +25,9 @@ type TestEnv struct {
 type SysEnv struct {
 	timeBegin 	 int64
 	timeEnd 	 int64
+	hostName 	 string
 	testID		 string
+	UserName	 string
 	webDataURL	 string
 	pathSyslogNG string
 	efLog  		 string
@@ -38,17 +40,26 @@ type SysEnv struct {
 }
 
 func (test *SysEnv) setDefaults() {
+	test.hostName, _  = os.Hostname()
 	test.pathSyslogNG = "/var/log/syslog-ng/"
 	test.efLog 		  = "ef-test.log"
 	test.pathLog 	  = "autoexec-log/"
 	test.autoExecLog  = "autoexec.log"
 	test.pathYaml	  = "/var/log/syslog-ng/ef-testing/autoexec-yaml"
 	test.externalIP	  = ""
-	test.webStats	  = `{"difficulty":{"max":55000000,"standardDeviation":427516.00232242176,"mean":51202982.53106213},"totalDifficulty":{"max":25550288283,"standardDeviation":7391818514.634528,"mean":12768191452.43888},"gasLimit":{"max":11850000,"standardDeviation":595.7486135081332,"mean":11849961.018036073},"gasUsed":{"max":11371336,"standardDeviation":508257.5740591193,"mean":11342176.352705412},"blockTime":{"max":631,"standardDeviation":30.57527317048098,"mean":13.160965794768613},"blockSize":{"max":163758,"standardDeviation":7276.488035583049,"mean":162884.8316633266},"transactionPerBlock":{"max":25,"standardDeviation":1.1180317437084863,"mean":24.949899799599194},"uncleCount":{"max":1,"standardDeviation":0.09959738388608554,"mean":0.010020040080160317},"tps":{"max":25,"standardDeviation":7.716263384080033,"mean":6.520443852228358},"blocks":499}`
+/*	test.webStats	  = `{"difficulty":{"max":55000000,"standardDeviation":427516.00232242176,"mean":51202982.53106213},"totalDifficulty":{"max":25550288283,"standardDeviation":7391818514.634528,"mean":12768191452.43888},"gasLimit":{"max":11850000,"standardDeviation":595.7486135081332,"mean":11849961.018036073},"gasUsed":{"max":11371336,"standardDeviation":508257.5740591193,"mean":11342176.352705412},"blockTime":{"max":631,"standardDeviation":30.57527317048098,"mean":13.160965794768613},"blockSize":{"max":163758,"standardDeviation":7276.488035583049,"mean":162884.8316633266},"transactionPerBlock":{"max":25,"standardDeviation":1.1180317437084863,"mean":24.949899799599194},"uncleCount":{"max":1,"standardDeviation":0.09959738388608554,"mean":0.010020040080160317},"tps":{"max":25,"standardDeviation":7.716263384080033,"mean":6.520443852228358},"blocks":499}`*/
+	test.webStats	  = ""
 }
 
-func (test *SysEnv) getGenesisAccount() error {
-
+func (test *SysEnv) getGenesisUserName() error {
+	cmd := exec.Command("genesis", "whoami", "--json")
+    out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to call genesis whoami.")
+		return fmt.Errorf("Unable to call genesis whoami.")
+	} 
+	json.Unmarshal([]byte(out), &test)
+	
 return nil
 }
 
@@ -150,11 +161,13 @@ func (test *SysEnv) monitorWebData() error {
 return nil
 }
 
-func (test *SysEnv) startRstats(done chan bool) error {
+func (test *SysEnv) startRstats() error {
 	// genesis stats cad --json -t 670e1118-5620-4c91-8560-eafd14c73048  >> /var/log/syslog-ng/test-ef/670e1118-5620-4c91-8560-eafd14c73048.stats
 /*	cmd := exec.Command("genesis", "stats", "cad", "-t", test.testID, "--json", ">>", test.pathSyslogNG+test.pathLog+test.testID+".stats")*/
 	cmd := exec.Command("ls", "-lah")
+	go cmd.Run()
 	fmt.Println(cmd)
+/*
     done <- true
     out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -162,12 +175,13 @@ func (test *SysEnv) startRstats(done chan bool) error {
 		return fmt.Errorf("Unable to set genesis syslogng host.")
 
 	} 
-	test.rstatsPID = cmd.Process.Pid
+*/
+/*	test.rstatsPID = cmd.Process.Pid*/
 return nil
 }
 
 func (test *SysEnv) beginTest(yaml_file string) error {
-	cmd := exec.Command("genesis", "run", yaml_file, "paccode", "--no-await", "--json")
+	cmd := exec.Command("genesis", "run", yaml_file, test.UserName, "--no-await", "--json")
 	fmt.Println(cmd)
 /*
     out, err := cmd.CombinedOutput()
@@ -266,9 +280,11 @@ func main() {
 		log.WithFields(log.Fields{"error": err}).Error("Unable to get external IP exiting now.")
 		return 
 	}
+	// set genesis username for this server
+	test.getGenesisUserName()
+
 	file := getYamlFiles(test.pathYaml)
     for i := 1; i < len(file); i++ {
-		done := make(chan bool, 1)
     	// Set genesis settings set syslogng-host
     	err = setSyslogng(test.externalIP)
     	if err != nil {
@@ -295,22 +311,21 @@ func main() {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to get test web data URL.")
 			return 
     	}
-    	go test.startRstats(done)
-/*
+    	// Start RSTATS data collection
+    	test.startRstats()
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to start RSTATS collection.")
 			return 
     	}
-*/
 /*
+    	// Start Webdata collection
     	err = test.monitorWebData()
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to monitor web stats.")
 			return 
     	}
 */
-		
-  		<-done  	
+    	// Test has finished cleanup and get ready for the next test
     	err = test.cleanUp(0)
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to clean up after test.")
