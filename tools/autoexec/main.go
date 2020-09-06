@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"io/ioutil"
 	"time"
+	"syscall"
 	_"bufio"
 	"net/http"
 	"encoding/json"
@@ -16,6 +17,7 @@ import (
 )
 
 type TestEnv struct {
+	HostName 	 string `json:"hostName"`
 	TimeBegin 	 int64	`json:"timeBegin"`
 	TimeEnd 	 int64	`json:"timeEnd"`
 	TestID		 string	`json:"testID"`
@@ -39,7 +41,7 @@ type SysEnv struct {
 	rstatsPID	 int
 }
 
-func (test *SysEnv) setDefaults() {
+func (test *SysEnv) setDefaults() error {
 	test.hostName, _  = os.Hostname()
 	test.pathSyslogNG = "/var/log/syslog-ng/"
 	test.efLog 		  = "ef-test.log"
@@ -49,6 +51,23 @@ func (test *SysEnv) setDefaults() {
 	test.externalIP	  = ""
 /*	test.webStats	  = `{"difficulty":{"max":55000000,"standardDeviation":427516.00232242176,"mean":51202982.53106213},"totalDifficulty":{"max":25550288283,"standardDeviation":7391818514.634528,"mean":12768191452.43888},"gasLimit":{"max":11850000,"standardDeviation":595.7486135081332,"mean":11849961.018036073},"gasUsed":{"max":11371336,"standardDeviation":508257.5740591193,"mean":11342176.352705412},"blockTime":{"max":631,"standardDeviation":30.57527317048098,"mean":13.160965794768613},"blockSize":{"max":163758,"standardDeviation":7276.488035583049,"mean":162884.8316633266},"transactionPerBlock":{"max":25,"standardDeviation":1.1180317437084863,"mean":24.949899799599194},"uncleCount":{"max":1,"standardDeviation":0.09959738388608554,"mean":0.010020040080160317},"tps":{"max":25,"standardDeviation":7.716263384080033,"mean":6.520443852228358},"blocks":499}`*/
 	test.webStats	  = ""
+	
+	nglog_file := test.pathSyslogNG+test.efLog
+	if _, err := os.Stat(nglog_file); os.IsNotExist(err) {
+    	f, _ := os.Create(nglog_file)
+    	f.Close()
+	}
+	autoexeclog_file := test.pathSyslogNG+test.pathLog+test.autoExecLog
+	if _, err := os.Stat(autoexeclog_file); os.IsNotExist(err) {
+		err := os.Mkdir(test.pathSyslogNG+test.pathLog, 0755)
+    	err = ioutil.WriteFile(autoexeclog_file, []byte(""), 0644)
+    	if err != nil {
+			log.WithFields(log.Fields{"file": autoexeclog_file, "error": err}).Error("Unable to create autoexeclog_file file .")
+			return fmt.Errorf("Unable to create autoexeclog_file file.")
+    	}
+	}
+	
+return nil
 }
 
 func (test *SysEnv) getGenesisUserName() error {
@@ -163,20 +182,14 @@ return nil
 
 func (test *SysEnv) startRstats() error {
 	// genesis stats cad --json -t 670e1118-5620-4c91-8560-eafd14c73048  >> /var/log/syslog-ng/test-ef/670e1118-5620-4c91-8560-eafd14c73048.stats
-/*	cmd := exec.Command("genesis", "stats", "cad", "-t", test.testID, "--json", ">>", test.pathSyslogNG+test.pathLog+test.testID+".stats")*/
-	cmd := exec.Command("ls", "-lah")
-	go cmd.Run()
+	cmd := exec.Command("genesis", "stats", "cad", "-t", test.testID, "--json", ">>", test.pathSyslogNG+test.pathLog+test.testID+".stats")
+	err := cmd.Start()
 	fmt.Println(cmd)
-/*
-    done <- true
-    out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to set genesis syslogng host.")
-		return fmt.Errorf("Unable to set genesis syslogng host.")
-
+		log.WithFields(log.Fields{"cmd": cmd, "error": err}).Error("Unable to start RSTATS process.")
+		return fmt.Errorf("Unable to start RSTATS process.")
 	} 
-*/
-/*	test.rstatsPID = cmd.Process.Pid*/
+	test.rstatsPID = cmd.Process.Pid
 return nil
 }
 
@@ -194,7 +207,7 @@ func (test *SysEnv) beginTest(yaml_file string) error {
 return nil
 }
 
-func (test *SysEnv) cleanUp(err int) error {
+func (test *SysEnv) cleanUp(test_err int) error {
 	// stop current genesis test
 	cmd := exec.Command("genesis", "stop", test.testID)
 	fmt.Println(cmd)
@@ -210,11 +223,15 @@ func (test *SysEnv) cleanUp(err int) error {
 	
 	// kill RSTATS collection
 	// ***********************
-	
-	
+	ok = syscall.Kill(test.rstatsPID, syscall.SIGKILL)
+	if ok != nil {
+		log.WithFields(log.Fields{"error": ok}).Error("Unable to kill RSTATS process.")
+		return fmt.Errorf("Unable to kill RSTATS process TESTID: "+test.testID)
+
+	} 
 	// if err == 0 copy syslogng-logs to test-ef/ directory
 	// cp ef-test.log test-ef/ef-test-670e1118.log
-	if err == 0 {
+	if test_err == 0 {
 		splitID := strings.Split(test.testID, "-")
 		logFile := test.pathSyslogNG+test.efLog
 		statsFile := test.pathSyslogNG+test.pathLog+"ef-test-"+splitID[0]+".log"
@@ -254,27 +271,31 @@ func (test *SysEnv) cleanUp(err int) error {
 	
 	time_now := time.Now()
 	logStats := TestEnv{}
+	logStats.HostName 	 = test.hostName
 	logStats.TimeBegin 	 = test.timeBegin
 	logStats.TimeEnd 	 = time_now.Unix()
 	logStats.TestID		 = test.testID
 	logStats.WebStats	 = test.webStats
 
 	jsonTest, _ := json.Marshal(logStats)
+	fmt.Println(string(jsonTest))
 	if _, err := file.WriteString(string(jsonTest)); err != nil {
 		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to write to autoexec log for current genesis test: "+test.testID)
 		return fmt.Errorf("Unable to write to autoexec log for current genesis test: "+test.testID)
 	}
 
 	file.Close()
-/*	fmt.Println(string(jsonTest))*/
-/*	fmt.Println(test)*/
 return nil
 }
 
 func main() {
 	err := error(nil)
 	var test = SysEnv{}
-	test.setDefaults()
+	err = test.setDefaults()
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("Unable to set/get default values. exiting now.")
+		return 
+	}
 	test.externalIP, err = getExternalIP()
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("Unable to get external IP exiting now.")
@@ -325,6 +346,7 @@ func main() {
 			return 
     	}
 */
+		fmt.Println(test)
     	// Test has finished cleanup and get ready for the next test
     	err = test.cleanUp(0)
     	if err != nil {
