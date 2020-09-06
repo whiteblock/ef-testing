@@ -18,6 +18,7 @@ import (
 
 type TestEnv struct {
 	HostName 	 string `json:"hostName"`
+	TestName 	 string `json:"testName"`
 	TimeBegin 	 int64	`json:"timeBegin"`
 	TimeEnd 	 int64	`json:"timeEnd"`
 	TestID		 string	`json:"testID"`
@@ -28,6 +29,7 @@ type SysEnv struct {
 	timeBegin 	 int64
 	timeEnd 	 int64
 	hostName 	 string
+	fileName 	 string
 	testID		 string
 	UserName	 string
 	webDataURL	 string
@@ -43,6 +45,7 @@ type SysEnv struct {
 
 func (test *SysEnv) setDefaults() error {
 	test.hostName, _  = os.Hostname()
+	test.fileName     = ""
 	test.pathSyslogNG = "/var/log/syslog-ng/"
 	test.efLog 		  = "ef-test.log"
 	test.pathLog 	  = "autoexec-log/"
@@ -199,8 +202,8 @@ func (test *SysEnv) startRstats() error {
 return nil
 }
 
-func (test *SysEnv) beginTest(yaml_file string) error {
-	cmd := exec.Command("genesis", "run", yaml_file, test.UserName, "--no-await", "--json")
+func (test *SysEnv) beginTest() error {
+	cmd := exec.Command("genesis", "run", test.fileName, test.UserName, "--no-await", "--json")
 	fmt.Println(cmd)
 /*
     out, err := cmd.CombinedOutput()
@@ -274,10 +277,13 @@ func (test *SysEnv) cleanUp(test_err int) error {
 		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to open autoexec log for current genesis test: "+test.testID)
 		return fmt.Errorf("Unable to open autoexec log for current genesis test: "+test.testID)
 	}
+	split := strings.Split(test.fileName, "/")
+	slice_file := strings.Split(split[len(split)-1], ".")
 	
 	time_now := time.Now()
 	logStats := TestEnv{}
 	logStats.HostName 	 = test.hostName
+	logStats.TestName 	 = slice_file[0]
 	logStats.TimeBegin 	 = test.timeBegin
 	logStats.TimeEnd 	 = time_now.Unix()
 	logStats.TestID		 = test.testID
@@ -321,8 +327,9 @@ func main() {
     	}
 		time_now := time.Now()
 		test.timeBegin = time_now.Unix()
+		test.fileName = file[i]
     	// Begin genesis run yaml_file test
-    	err = test.beginTest(file[i])
+    	err = test.beginTest()
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to begin test.")
 			return 
@@ -360,7 +367,7 @@ func main() {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to clean up after test.")
 			return 
     	}
-        fmt.Println(file)
+        fmt.Println(file[i])
     }
 }
 
