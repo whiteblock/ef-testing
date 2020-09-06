@@ -5,21 +5,49 @@ import (
     "os"
 	"os/exec"
 	"io/ioutil"
-	"bufio"
+	"time"
+	_"bufio"
 	"net/http"
 	"encoding/json"
 	_ "net"
-	_"strings"
+	"strings"
     "path/filepath"
 	log "github.com/sirupsen/logrus"
 )
 
-type SystemEnv struct {
-	pathSyslogNG string "/var/log/syslog-ng/"
-	efLog  		 string "ef-test.log"
-	pathLog  	 string "test-ef"
-	pathYaml	 string "/home/billhamilton/test/ef-testing/test-yaml"
-	externalIP	 string ""
+type TestEnv struct {
+	TimeBegin 	 string
+	TimeEnd 	 string
+	TestID		 string
+	WebStats	 string	
+}
+
+type SysEnv struct {
+	timeBegin 	 int64
+	timeEnd 	 int64
+	testID		 string
+	webDataURL	 string
+	pathSyslogNG string
+	efLog  		 string
+	pathLog  	 string
+	pathYaml	 string
+	externalIP	 string
+	webStats	 string
+	rstatsPID	 int
+}
+
+func (test *SysEnv) setDefaults() {
+	test.pathSyslogNG = "/var/log/syslog-ng/"
+	test.efLog 		  = "ef-test.log"
+	test.pathLog 	  = "test-ef/"
+	test.pathYaml	  = "/home/billhamilton/test/ef-testing/test-yaml"
+	test.externalIP	  = ""
+	test.webStats	  = ""
+}
+
+func (test *SysEnv) getGenesisAccount() error {
+
+return nil
 }
 
 func getExternalIP() (string, error){
@@ -40,10 +68,9 @@ func setSyslogng(ip string) error {
     out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.WithFields(log.Fields{"ip_address": ip, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to set genesis syslogng host.")
-		return fmt.Errorf("Unable to set genesis syslogng host.")
+		return fmt.Errorf("Unable to set genesis syslogng host.", ip)
 
 	} else {
-		fmt.Println(string(out))
 		return nil
 	}
 }
@@ -62,61 +89,216 @@ func getYamlFiles(file_path string) []string {
     return files
 }
 
-func monitorWebData(endpoint string) error {
-	resp, err := http.Get("http://"+endpoint+":8080/stats/all")
+func (test *SysEnv) getTestDNS() error {
+	cmd := exec.Command("genesis", "info", test.testID, "--json")
+	fmt.Println(cmd)
+    out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.WithFields(log.Fields{"endpoint": endpoint, "resp": resp,"error": err}).Error("Unable to make http request.")
-		return fmt.Errorf("Unable to make http request.")
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	var result map[string]interface{}
-	json.Unmarshal([]byte(body), &result)
+		log.WithFields(log.Fields{"test_ID": test.testID, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to get test DNS.")
+		return fmt.Errorf("Unable to get test DNS.")
 
-	fmt.Println(result["blocks"])
-	return nil
+	}
+
+	var result map[string]interface{}
+	json.Unmarshal([]byte(out), &result)
+	instance := result["instances"].([]interface{})
+	domain := instance[0].(map[string]interface{})
+	test.webDataURL = domain["domain"].(string)+".biomes.whiteblock.io:8080/stats/all"
+return nil
 }
 
-func beginTest(yaml_file string) (string, error) {
-	genesis_out, _ := os.Open("genesis_out")
-	defer genesis_out.Close()
-	reader := bufio.NewReader(genesis_out)
+func (test *SysEnv) getTestId() error {
+	cmd := exec.Command("genesis", "tests", "-l", "-1")
+    out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.WithFields(log.Fields{"ip_address": test.externalIP, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to set genesis syslogng host.")
+		return fmt.Errorf("Unable to set genesis syslogng host.")
 
+	}
+	// strip the new line character from the test id
+	test.testID = strings.TrimSuffix(string(out), "\n")
+return nil
+}
+
+func (test *SysEnv) monitorWebData() error {
+	statsURL := "http://"+test.webDataURL
+	
 	for {
-		line, err := reader.ReadString('\n')
+		resp, err := http.Get(statsURL)
 		if err != nil {
-			break
+			log.WithFields(log.Fields{"endpoint": statsURL, "resp": resp,"error": err}).Error("Unable to make http request.")
+			return fmt.Errorf("Unable to make http request.")
 		}
-		fmt.Println(line)	
-	}	
 
-	return "", nil
+		body, err := ioutil.ReadAll(resp.Body)
+		if string(body) != "" {
+			var result map[string]interface{}
+			json.Unmarshal([]byte(body), &result)
+			if result["blocks"].(int) > 420 {
+				// set test.webStats to write to file when test is done
+				test.webStats = string(body)
+				resp.Body.Close()
+				break
+			}
+
+			resp.Body.Close()
+		}
+		time.Sleep(15 * time.Second)
+	}
+return nil
+}
+
+func (test *SysEnv) startRstats(done chan bool) error {
+	// genesis stats cad --json -t 670e1118-5620-4c91-8560-eafd14c73048  >> /var/log/syslog-ng/test-ef/670e1118-5620-4c91-8560-eafd14c73048.stats
+/*	cmd := exec.Command("genesis", "stats", "cad", "-t", test.testID, "--json", ">>", test.pathSyslogNG+test.pathLog+test.testID+".stats")*/
+	cmd := exec.Command("ls", "-lah")
+	fmt.Println(cmd)
+    done <- true
+    out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to set genesis syslogng host.")
+		return fmt.Errorf("Unable to set genesis syslogng host.")
+
+	} 
+	test.rstatsPID = cmd.Process.Pid
+return nil
+}
+
+func (test *SysEnv) beginTest(yaml_file string) error {
+	cmd := exec.Command("genesis", "run", yaml_file, "paccode", "--no-await", "--json")
+	fmt.Println(cmd)
+/*
+    out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.WithFields(log.Fields{"ip_address": ip, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to set genesis syslogng host.")
+		return fmt.Errorf("Unable to set genesis syslogng host.")
+
+	} 
+*/
+return nil
+}
+
+func (test *SysEnv) cleanUp(err int) error {
+	// stop current genesis test
+	cmd := exec.Command("genesis", "stop", test.testID)
+	fmt.Println(cmd)
+    out, ok := cmd.CombinedOutput()
+	if ok != nil {
+		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to stop current genesis test.")
+		return fmt.Errorf("Unable to stop current genesis test: "+test.testID)
+
+	} 
+	// kill RSTATS collection
+	// ***********************
+	
+	
+	// if err == 0 copy syslogng-logs to test-ef/ directory
+	// cp ef-test.log test-ef/ef-test-670e1118.log
+	if err == 0 {
+		splitID := strings.Split(test.testID, "-")
+		logFile := test.pathSyslogNG+test.efLog
+		statsFile := test.pathSyslogNG+test.pathLog+"ef-test-"+splitID[0]+".log"
+		ok := os.Rename(logFile, statsFile)
+		if ok != nil {
+			log.WithFields(log.Fields{"logFile": logFile, "statsFile": statsFile, "error": ok}).Error("Unable to copy NGlog data to stats directory.")
+			return fmt.Errorf("Unable to copy NGlog data to stats directory: "+test.testID)
+
+		} 
+	}
+	// clear data from current syslog-ng/ef-test.log file
+	cmd = exec.Command(">", test.pathSyslogNG+test.efLog)
+	fmt.Println(cmd)
+/*
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.WithFields(log.Fields{"ip_address": ip, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to stop current genesis test.")
+		return fmt.Errorf("Unable to stop current genesis test: "+test.testID)
+
+	} 
+*/
+	// Write test.webStats data to file
+	
+return nil
 }
 
 func main() {
 	err := error(nil)
-	sysEnv := SystemEnv{}
-	sysEnv.externalIP, err = getExternalIP()
+	var test = SysEnv{}
+	test.setDefaults()
+	test.externalIP, err = getExternalIP()
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("Unable to get external IP exiting now.")
 		return 
 	}
-/*
-	files_yaml := getYamlFiles("/var/log/syslog-ng/ef-testing/test-yaml")
-*/
-	monitor_url := "skinnervenom-0.biomes.whiteblock.io"
-	files_yaml := getYamlFiles(sysEnv.pathYaml)
-    for _, file := range files_yaml {
-    	err = setSyslogng(sysEnv.externalIP)
+	file := getYamlFiles(test.pathYaml)
+/*    for _, file := range files_yaml {*/
+    for i := 1; i < len(file); i++ {
+        fmt.Println(file[i])
+		continue
+		done := make(chan bool, 1)
+    	// Set genesis settings set syslogng-host
+    	err = setSyslogng(test.externalIP)
     	if err != nil {
-			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to set syslogng-host genesis paramater.")
+			log.WithFields(log.Fields{"yaml_file": file, "External IP": test.externalIP, "error": err}).Error("Unable to set syslogng-host genesis paramater.")
 			return 
     	}
-    	_ = monitorWebData(monitor_url)
+		time_now := time.Now()
+		test.timeBegin = time_now.Unix()
+    	// Begin genesis run yaml_file test
+    	err = test.beginTest(file[i])
+    	if err != nil {
+			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to begin test.")
+			return 
+    	}
+    	// Get test ID
+    	err = test.getTestId()
+    	if err != nil {
+			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to get test id.")
+			return 
+    	}
+    	// Get test DNS so we can monitor web stats
+    	err = test.getTestDNS()
+    	if err != nil {
+			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to get test web data URL.")
+			return 
+    	}
+    	go test.startRstats(done)
 /*
-    	_, _ = beginTest(file)
+    	if err != nil {
+			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to start RSTATS collection.")
+			return 
+    	}
+*/
+    	fmt.Println(test)
+/*
+    	err = test.monitorWebData()
+    	if err != nil {
+			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to monitor web stats.")
+			return 
+    	}
+*/
+		
+  		<-done  	
+/*
+    	err = test.cleanUp(0)
+    	if err != nil {
+			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to clean up after test.")
+			return 
+    	}
 */
         fmt.Println(file)
     }
+}
 
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+/*	log.SetFormatter(&log.JSONFormatter{})*/
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	/*	log.SetOutput(os.Stdout)*/
+
+	log.SetReportCaller(true)
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
 }
