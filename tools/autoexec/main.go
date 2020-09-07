@@ -257,7 +257,13 @@ func (test *SysEnv) beginTest() error {
 /*	cmd := exec.Command("genesis", "run", test.fileName, "paccode", "--no-await", "--json")*/
 	cmd := exec.Command("genesis", "run", test.fileName, test.UserName, "--no-await", "--json")
 	fmt.Println(cmd)
-return nil
+     out, err := cmd.CombinedOutput()
+ 	if err != nil {
+ 		log.WithFields(log.Fields{"file": test.fileName, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to start genesis run host.")
+ 		return fmt.Errorf("Unable to start genesis run host.")
+ 	}
+ 	fmt.Println(string(out))
+ return nil
 }
 
 func (test *SysEnv) cleanUp(test_err int) error {
@@ -331,13 +337,15 @@ func (test *SysEnv) cleanUp(test_err int) error {
 		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to open autoexec log for current genesis test: "+test.testID)
 		return fmt.Errorf("Unable to open autoexec log for current genesis test: "+test.testID)
 	}
+/*
 	split := strings.Split(test.fileName, "/")
 	slice_file := strings.Split(split[len(split)-1], ".")
+*/
 	
 	time_now := time.Now()
 	logStats := TestEnv{}
 	logStats.HostName 	 = test.hostName
-	logStats.TestName 	 = slice_file[0]
+	logStats.TestName 	 = test.testName
 	logStats.TimeBegin 	 = test.timeBegin
 	logStats.TimeEnd 	 = time_now.Unix()
 	logStats.TestID		 = test.testID
