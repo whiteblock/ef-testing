@@ -256,14 +256,6 @@ func (test *SysEnv) beginTest() error {
 /*	cmd := exec.Command("genesis", "run", test.fileName, "paccode", "--no-await", "--json")*/
 	cmd := exec.Command("genesis", "run", test.fileName, test.UserName, "--no-await", "--json")
 	fmt.Println(cmd)
-/*
-    out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.WithFields(log.Fields{"file": test.fileName, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to start genesis run host.")
-		return fmt.Errorf("Unable to start genesis run host.")
-	}
-	fmt.Println(string(out))
-*/
 return nil
 }
 
