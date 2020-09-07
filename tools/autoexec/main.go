@@ -144,7 +144,8 @@ func getYamlFiles(file_path string) []string {
 }
 
 func (test *SysEnv) getTestDNS() error {
-	time.Sleep(180 * time.Second)
+	// wait 5 mins for DNS to become available
+	time.Sleep(300 * time.Second)
 	cmd := exec.Command("genesis", "info", test.testID, "--json")
 	fmt.Println(cmd)
     out, err := cmd.CombinedOutput()
