@@ -144,6 +144,7 @@ func getYamlFiles(file_path string) []string {
 }
 
 func (test *SysEnv) getTestDNS() error {
+	time.Sleep(180 * time.Second)
 	cmd := exec.Command("genesis", "info", test.testID, "--json")
 	fmt.Println(cmd)
     out, err := cmd.CombinedOutput()
@@ -251,15 +252,17 @@ return nil
 }
 
 func (test *SysEnv) beginTest() error {
-/*	cmd := exec.Command("genesis", "run", test.fileName, test.UserName, "--no-await", "--json")*/
-	cmd := exec.Command("genesis", "run", test.fileName, "paccode", "--no-await", "--json")
+/*	cmd := exec.Command("genesis", "run", test.fileName, "paccode", "--no-await", "--json")*/
+	cmd := exec.Command("genesis", "run", test.fileName, test.UserName, "--no-await", "--json")
 	fmt.Println(cmd)
+/*
     out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.WithFields(log.Fields{"file": test.fileName, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to start genesis run host.")
 		return fmt.Errorf("Unable to start genesis run host.")
 	}
 	fmt.Println(string(out))
+*/
 return nil
 }
 
@@ -305,7 +308,15 @@ func (test *SysEnv) cleanUp(test_err int) error {
 			return fmt.Errorf("Unable to create new NG log file for current genesis test: "+test.testID)
 
 		} 
-	} else { // there mus have been an error so clear the NG log data
+		cmd = exec.Command("chmod", "777", test.pathSyslogNG+test.efLog)
+		fmt.Println(cmd)
+		out, ok = cmd.CombinedOutput()
+		if ok != nil {
+			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to create new NG log file for current genesis test: "+test.testID)
+			return fmt.Errorf("Unable to create new NG log file for current genesis test: "+test.testID)
+
+		} 
+	} else { // there must have been an error so clear the NG log data
 
 		// clear data from current syslog-ng/ef-test.log file
 		cmd = exec.Command(">", test.pathSyslogNG+test.efLog)
