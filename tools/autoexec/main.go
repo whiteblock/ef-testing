@@ -49,6 +49,7 @@ type SysEnv struct {
 	timeEnd 	 int64
 	hostName 	 string
 	fileName 	 string
+	testName 	 string
 	testID		 string
 	UserName	 string
 	webDataURL	 string
@@ -233,7 +234,7 @@ return nil
 
 func (test *SysEnv) startRstats() error {
 	// genesis stats cad --json -t 670e1118-5620-4c91-8560-eafd14c73048  >> /var/log/syslog-ng/autoexec-log/670e1118-5620-4c91-8560-eafd14c73048.stats
-	file_name := test.pathSyslogNG+test.pathLog+test.testID+".stats"
+	file_name := test.pathSyslogNG+test.pathLog+test.testName+"_"+test.testID+".stats"
 	file, err := os.OpenFile(file_name, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{"file_name": file_name, "error": err}).Error("Unable to open RSTATS file.")
@@ -286,13 +287,14 @@ func (test *SysEnv) cleanUp(test_err int) error {
 	if test_err == 0 {
 		splitID := strings.Split(test.testID, "-")
 		logFile := test.pathSyslogNG+test.efLog
-		statsFile := test.pathSyslogNG+test.pathLog+"ef-test-"+splitID[0]+".log"
+		statsFile := test.pathSyslogNG+test.pathLog+test.testName+"_ef-test-"+splitID[0]+".log"
 		ok := os.Rename(logFile, statsFile)
 		if ok != nil {
 			log.WithFields(log.Fields{"logFile": logFile, "statsFile": statsFile, "error": ok}).Error("Unable to copy NGlog data to stats directory.")
 			return fmt.Errorf("Unable to copy NGlog data to stats directory: "+test.testID)
 
 		} 
+/*
 		cmd = exec.Command("touch", test.pathSyslogNG+test.efLog)
 		fmt.Println(cmd)
 		out, ok = cmd.CombinedOutput()
@@ -309,6 +311,7 @@ func (test *SysEnv) cleanUp(test_err int) error {
 			return fmt.Errorf("Unable to create new NG log file for current genesis test: "+test.testID)
 
 		} 
+*/
 	} else { // there must have been an error so clear the NG log data
 
 		// clear data from current syslog-ng/ef-test.log file
@@ -379,6 +382,9 @@ func main() {
 		time_now := time.Now()
 		test.timeBegin = time_now.Unix()
 		test.fileName = file[i]
+		split := strings.Split(test.fileName, "/")
+		slice_file := strings.Split(split[len(split)-1], ".")
+		test.testName = slice_file[0]
 		fmt.Println("test ", i, "Begin --- ", test)
 
     	// Begin genesis run yaml_file test
