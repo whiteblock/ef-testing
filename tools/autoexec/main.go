@@ -14,6 +14,8 @@ import (
 	"strings"
     "path/filepath"
 	log "github.com/sirupsen/logrus"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 type stats struct {
@@ -378,6 +380,7 @@ return nil
 }
 
 func main() {
+	mail_subject := ""
 	err := error(nil)
 	var test = SysEnv{}
 	err = test.setDefaults()
@@ -408,23 +411,31 @@ func main() {
 		slice_file := strings.Split(split[len(split)-1], ".")
 		test.testName = slice_file[0]
 		fmt.Println("test ", i, "Begin --- ", test)
-
+		
+		mail_subject = "Successfully completed test: "+test.testName+" from "+test.hostName+" server"
+		test.sendEmail(mail_subject, "")
+		return
+		// Error subject line for email sent in case of error for any of the calls below
+		mail_subject = "Error running test: "+test.testName+" from "+test.hostName+" server"
     	// Begin genesis run yaml_file test
     	err = test.beginTest()
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to begin test.")
+			test.sendEmail(mail_subject, string(err))
 			return 
     	}
     	// Get test ID
     	err = test.getTestId()
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to get test id.")
+			test.sendEmail(mail_subject, err)
 			return 
     	}
     	// Get test DNS so we can monitor web stats
     	err = test.getTestDNS()
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to get test web data URL.")
+			test.sendEmail(mail_subject, err)
 			return 
     	}
     	// Start Webdata collection
@@ -432,6 +443,7 @@ func main() {
     	err = test.monitorWebData()
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to monitor web stats.")
+			test.sendEmail(mail_subject, err)
 			return 
     	}
 		fmt.Println(test)
@@ -439,12 +451,73 @@ func main() {
     	err = test.cleanUp(0)
     	if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to clean up after test.")
+			test.sendEmail(mail_subject, err)
 			return 
     	}
+		mail_subject = "Successfully completed test: "+test.testName+" from "+test.hostName+" server"
+		test.sendEmail(mail_subject, "")
         fmt.Println(file[i])
     }
 }
 
+func (test *SysEnv) sendEmail(subject string, message string) {
+
+	type outStruct struct {
+		HostName 	 string `json:"hostName"`
+		TestName 	 string `json:"testName"`
+		TimeBegin 	 int64	`json:"timeBegin"`
+		TimeEnd 	 int64	`json:"timeEnd"`
+		TestID		 string	`json:"testID"`
+		WebStats	 jsonStruct	`json:"webStats"`
+		ErrorData	 string `json:"errorData"`
+	}
+
+	outData := outStruct{}
+	outData.HostName = test.hostName
+	outData.TestName = test.testName
+	outData.TimeBegin = test.timeBegin
+	outData.TimeEnd = test.timeEnd
+	outData.TestID = test.testID
+	outData.WebStats = test.webStats
+	outData.ErrorData = message
+  // create new *SGMailV3
+  m := mail.NewV3Mail()
+
+	jsonData, _ := json.Marshal(outData)
+
+  from := mail.NewEmail(test.hostName, "bill@whiteblock.io")
+  content := mail.NewContent("text/html", "<p> "+string(jsonData)+"</p>")
+
+  m.SetFrom(from)
+  m.AddContent(content)
+  
+  // create new *Personalization
+  personalization := mail.NewPersonalization()
+  
+  // populate `personalization` with data
+  to1 := mail.NewEmail("Bill Hamilton", "bill@whiteblock.io")
+
+  to2 := mail.NewEmail("Jason Tran", "jason@whiteblock.io")
+  to3 := mail.NewEmail("Nate Blakely", "nate@whiteblock.io")
+  
+  personalization.AddTos(to1, to2, to3)
+  personalization.Subject = subject
+
+  // add `personalization` to `m`
+  m.AddPersonalizations(personalization)
+
+  request := sendgrid.GetRequest("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", "/v3/mail/send", "https://api.sendgrid.com")
+  request.Method = "POST"
+  request.Body = mail.GetRequestBody(m)
+  response, err := sendgrid.API(request)
+  if err != nil {
+    log.Println(err)
+  } else {
+    fmt.Println(response.StatusCode)
+    fmt.Println(response.Body)
+    fmt.Println(response.Headers)
+  }
+}
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
 /*	log.SetFormatter(&log.JSONFormatter{})*/
