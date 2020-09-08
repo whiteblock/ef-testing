@@ -66,6 +66,8 @@ type SysEnv struct {
 func (test *SysEnv) setDefaults() error {
 	test.hostName, _  = os.Hostname()
 	test.fileName     = ""
+	test.testID		  = ""
+	test.webDataURL	  = ""
 	test.pathSyslogNG = "/var/log/syslog-ng/"
 	test.efLog 		  = "ef-test.log"
 	test.pathLog 	  = "autoexec-log/"
@@ -75,11 +77,13 @@ func (test *SysEnv) setDefaults() error {
 /*	test.webStats	  = `{"difficulty":{"max":55000000,"standardDeviation":427516.00232242176,"mean":51202982.53106213},"totalDifficulty":{"max":25550288283,"standardDeviation":7391818514.634528,"mean":12768191452.43888},"gasLimit":{"max":11850000,"standardDeviation":595.7486135081332,"mean":11849961.018036073},"gasUsed":{"max":11371336,"standardDeviation":508257.5740591193,"mean":11342176.352705412},"blockTime":{"max":631,"standardDeviation":30.57527317048098,"mean":13.160965794768613},"blockSize":{"max":163758,"standardDeviation":7276.488035583049,"mean":162884.8316633266},"transactionPerBlock":{"max":25,"standardDeviation":1.1180317437084863,"mean":24.949899799599194},"uncleCount":{"max":1,"standardDeviation":0.09959738388608554,"mean":0.010020040080160317},"tps":{"max":25,"standardDeviation":7.716263384080033,"mean":6.520443852228358},"blocks":499}`*/
 /*	test.webStats	  = ""*/
 	
+/*
 	nglog_file := test.pathSyslogNG+test.efLog
 	if _, err := os.Stat(nglog_file); os.IsNotExist(err) {
     	f, _ := os.Create(nglog_file)
     	f.Close()
 	}
+*/
 	autoexeclog_file := test.pathSyslogNG+test.pathLog+test.autoExecLog
 	if _, err := os.Stat(autoexeclog_file); os.IsNotExist(err) {
 		err := os.Mkdir(test.pathSyslogNG+test.pathLog, 0755)
@@ -298,6 +302,16 @@ func (test *SysEnv) cleanUp(test_err int) error {
 		if ok != nil {
 			log.WithFields(log.Fields{"logFile": logFile, "statsFile": statsFile, "error": ok}).Error("Unable to copy NGlog data to stats directory.")
 			return fmt.Errorf("Unable to copy NGlog data to stats directory: "+test.testID)
+
+		}
+		// restart syslog-ng
+		// systemctl restart syslog-ng
+		cmd = exec.Command("systemctl", "restart", "syslog-ng")
+		fmt.Println(cmd)
+		out, ok = cmd.CombinedOutput()
+		if ok != nil {
+			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to restart syslog-ng for current genesis test: "+test.testID)
+			return fmt.Errorf("Unable to restart syslog-ng for current genesis test: "+test.testID)
 
 		} 
 /*
