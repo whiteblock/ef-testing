@@ -49,6 +49,7 @@ type SysEnv struct {
 	timeEnd 	 int64
 	hostName 	 string
 	fileName 	 string
+	testName 	 string
 	testID		 string
 	UserName	 string
 	webDataURL	 string
@@ -65,6 +66,8 @@ type SysEnv struct {
 func (test *SysEnv) setDefaults() error {
 	test.hostName, _  = os.Hostname()
 	test.fileName     = ""
+	test.testID		  = ""
+	test.webDataURL	  = ""
 	test.pathSyslogNG = "/var/log/syslog-ng/"
 	test.efLog 		  = "ef-test.log"
 	test.pathLog 	  = "autoexec-log/"
@@ -74,11 +77,13 @@ func (test *SysEnv) setDefaults() error {
 /*	test.webStats	  = `{"difficulty":{"max":55000000,"standardDeviation":427516.00232242176,"mean":51202982.53106213},"totalDifficulty":{"max":25550288283,"standardDeviation":7391818514.634528,"mean":12768191452.43888},"gasLimit":{"max":11850000,"standardDeviation":595.7486135081332,"mean":11849961.018036073},"gasUsed":{"max":11371336,"standardDeviation":508257.5740591193,"mean":11342176.352705412},"blockTime":{"max":631,"standardDeviation":30.57527317048098,"mean":13.160965794768613},"blockSize":{"max":163758,"standardDeviation":7276.488035583049,"mean":162884.8316633266},"transactionPerBlock":{"max":25,"standardDeviation":1.1180317437084863,"mean":24.949899799599194},"uncleCount":{"max":1,"standardDeviation":0.09959738388608554,"mean":0.010020040080160317},"tps":{"max":25,"standardDeviation":7.716263384080033,"mean":6.520443852228358},"blocks":499}`*/
 /*	test.webStats	  = ""*/
 	
+/*
 	nglog_file := test.pathSyslogNG+test.efLog
 	if _, err := os.Stat(nglog_file); os.IsNotExist(err) {
     	f, _ := os.Create(nglog_file)
     	f.Close()
 	}
+*/
 	autoexeclog_file := test.pathSyslogNG+test.pathLog+test.autoExecLog
 	if _, err := os.Stat(autoexeclog_file); os.IsNotExist(err) {
 		err := os.Mkdir(test.pathSyslogNG+test.pathLog, 0755)
@@ -233,7 +238,7 @@ return nil
 
 func (test *SysEnv) startRstats() error {
 	// genesis stats cad --json -t 670e1118-5620-4c91-8560-eafd14c73048  >> /var/log/syslog-ng/autoexec-log/670e1118-5620-4c91-8560-eafd14c73048.stats
-	file_name := test.pathSyslogNG+test.pathLog+test.testID+".stats"
+	file_name := test.pathSyslogNG+test.pathLog+test.testName+"_"+test.testID+".stats"
 	file, err := os.OpenFile(file_name, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.WithFields(log.Fields{"file_name": file_name, "error": err}).Error("Unable to open RSTATS file.")
@@ -256,13 +261,13 @@ func (test *SysEnv) beginTest() error {
 /*	cmd := exec.Command("genesis", "run", test.fileName, "paccode", "--no-await", "--json")*/
 	cmd := exec.Command("genesis", "run", test.fileName, test.UserName, "--no-await", "--json")
 	fmt.Println(cmd)
-    out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.WithFields(log.Fields{"file": test.fileName, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to start genesis run host.")
-		return fmt.Errorf("Unable to start genesis run host.")
-	}
-	fmt.Println(string(out))
-return nil
+     out, err := cmd.CombinedOutput()
+ 	if err != nil {
+ 		log.WithFields(log.Fields{"file": test.fileName, "out": string(out), "cmd": cmd, "error": err}).Error("Unable to start genesis run host.")
+ 		return fmt.Errorf("Unable to start genesis run host.")
+ 	}
+ 	fmt.Println(string(out))
+ return nil
 }
 
 func (test *SysEnv) cleanUp(test_err int) error {
@@ -292,13 +297,24 @@ func (test *SysEnv) cleanUp(test_err int) error {
 	if test_err == 0 {
 		splitID := strings.Split(test.testID, "-")
 		logFile := test.pathSyslogNG+test.efLog
-		statsFile := test.pathSyslogNG+test.pathLog+"ef-test-"+splitID[0]+".log"
+		statsFile := test.pathSyslogNG+test.pathLog+test.testName+"_ef-test-"+splitID[0]+".log"
 		ok := os.Rename(logFile, statsFile)
 		if ok != nil {
 			log.WithFields(log.Fields{"logFile": logFile, "statsFile": statsFile, "error": ok}).Error("Unable to copy NGlog data to stats directory.")
 			return fmt.Errorf("Unable to copy NGlog data to stats directory: "+test.testID)
 
+		}
+		// restart syslog-ng
+		// systemctl restart syslog-ng
+		cmd = exec.Command("systemctl", "restart", "syslog-ng")
+		fmt.Println(cmd)
+		out, ok = cmd.CombinedOutput()
+		if ok != nil {
+			log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to restart syslog-ng for current genesis test: "+test.testID)
+			return fmt.Errorf("Unable to restart syslog-ng for current genesis test: "+test.testID)
+
 		} 
+/*
 		cmd = exec.Command("touch", test.pathSyslogNG+test.efLog)
 		fmt.Println(cmd)
 		out, ok = cmd.CombinedOutput()
@@ -315,6 +331,7 @@ func (test *SysEnv) cleanUp(test_err int) error {
 			return fmt.Errorf("Unable to create new NG log file for current genesis test: "+test.testID)
 
 		} 
+*/
 	} else { // there must have been an error so clear the NG log data
 
 		// clear data from current syslog-ng/ef-test.log file
@@ -334,13 +351,15 @@ func (test *SysEnv) cleanUp(test_err int) error {
 		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": ok}).Error("Unable to open autoexec log for current genesis test: "+test.testID)
 		return fmt.Errorf("Unable to open autoexec log for current genesis test: "+test.testID)
 	}
+/*
 	split := strings.Split(test.fileName, "/")
 	slice_file := strings.Split(split[len(split)-1], ".")
+*/
 	
 	time_now := time.Now()
 	logStats := TestEnv{}
 	logStats.HostName 	 = test.hostName
-	logStats.TestName 	 = slice_file[0]
+	logStats.TestName 	 = test.testName
 	logStats.TimeBegin 	 = test.timeBegin
 	logStats.TimeEnd 	 = time_now.Unix()
 	logStats.TestID		 = test.testID
@@ -385,6 +404,9 @@ func main() {
 		time_now := time.Now()
 		test.timeBegin = time_now.Unix()
 		test.fileName = file[i]
+		split := strings.Split(test.fileName, "/")
+		slice_file := strings.Split(split[len(split)-1], ".")
+		test.testName = slice_file[0]
 		fmt.Println("test ", i, "Begin --- ", test)
 
     	// Begin genesis run yaml_file test
