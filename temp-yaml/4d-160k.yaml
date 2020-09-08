@@ -1,0 +1,254 @@
+substitutions:
+  _TEST0_ID: ""
+  _TEST0_STATS: ''
+  _TEST0_DATE: ""
+  _TEST1_ID: ""
+  _TEST1_STATS: ''
+  _TEST1_DATE: ""
+  _ACCOUNT_PASSWORD: "password"
+  _ETH_NETWORK_ID: "7777"
+  _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
+  _BA_PARAMETER: "10"
+  _GAS_LIMIT:  11850000
+  _GAS_TARGET: 11400000
+  _TPS: 4  # per node, pick sufficiently high rate for saturation 
+  _TX_SIZE: 6400
+  _CONCURRENT_NONCES: 75    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
+services:
+  - name: geth
+    image: "ethereum/client-go:alltools-v1.9.18"
+#    image: "gcr.io/whiteblock/geth-wb/geth:v1.9.18"
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+    script:
+      inline: >
+        mkdir -p /geth/keystore;
+        cp /accounts/keystore/* /geth/keystore;
+        cp /accounts/static-nodes${INDEX}.json /geth/static-nodes.json;
+        echo $_ACCOUNT_PASSWORD > /geth/pw.txt;
+        geth --nousb --datadir /geth/ init /accounts/genesis.json;
+        geth --networkid $_ETH_NETWORK_ID
+        --datadir /geth/
+        --http
+        --http.addr 0.0.0.0
+        --miner.gasprice=${MINER_GASPRICE}
+        --miner.gaslimit=$_GAS_LIMIT
+        --miner.gastarget=$_GAS_TARGET
+        --http.api "admin,web3,eth,net,personal,miner,txpool"
+        --http.corsdomain "0.0.0.0"
+        --txpool.nolocals
+        --http.vhosts=*
+        --verbosity=3
+        --port 30303
+        --nousb
+        --miner.etherbase $(cat /accounts/address${INDEX})
+        --unlock $(cat /accounts/address${INDEX})
+        --allow-insecure-unlock
+        --password /geth/pw.txt
+        --mine
+        --miner.threads=${MINER_THREADS}
+        --nodekeyhex $(cat /accounts/priv$INDEX)
+        --nodiscover
+        --txpool.accountslots 5000
+    environment:
+      MINER_GASPRICE: "1"
+      MINER_THREADS: "1"
+    resources:
+      cpus: 2
+      memory: 6 GB
+      storage: 40 GiB
+  
+  - name: record
+    image: gcr.io/whiteblock/helpers/ethereum/record:master
+    script:
+      inline: 
+        app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545 --start-block 10
+    resources:
+      memory: 1 GiB
+
+  - name: block-logger
+    image: gcr.io/whiteblock/helpers/ethereum/block-logger:master
+    script:
+      inline: 
+        app --target http://$GETH_SERVICE0_COMMON_NETWORK:8545 --delay 10
+    resources:
+      memory: 1 GiB
+
+  - name: tps-logger
+    image: gcr.io/whiteblock/helpers/ethereum/tps-logger:master
+    script:
+      inline: tps-logger --node $GETH_SERVICE0_COMMON_NETWORK:8545 --record $RECORD_SERVICE0_COMMON_NETWORK:8080 --listen 0.0.0.0:17777
+    resources:
+      memory: 1 GiB
+
+  - name: eth-viewer
+    image: gcr.io/whiteblock/helpers/ethereum/viewer:latest
+    script:
+      inline: viewer --node $GETH_SERVICE0_COMMON_NETWORK:8545 --listen 0.0.0.0:16555
+    resources:
+      memory: 1 GiB
+
+sidecars:
+  - name: tx-generator
+    sidecar-to:
+      - geth
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+    image: gcr.io/whiteblock/helpers/ethereum/tx:ef
+    script:
+      # recvAddrs${INDEX}.json will be comma separated addresses with 0x prefix
+      inline: >
+        cat /accounts/accounts.json 
+        | jq --arg i "${INDEX}" 'del(.[$i | tonumber]) | map(.address) | join(",")' 
+        > /accounts/recvAddrs${INDEX}.json;
+        privkey=$(cat /accounts/accounts.json | jq --arg i "${INDEX}" '.[$i | tonumber].privateKey');
+        tx --chain-id $_ETH_NETWORK_ID 
+        --tps $_TPS
+        --target $SERVICE:8545 
+        --private-key ${privkey} 
+        --gas-limit ${TX_GAS_LIMIT} 
+        --tx-size $_TX_SIZE
+        --gas-price ${TX_GAS_PRICE}
+        --destination $(cat /accounts/recvAddrs${INDEX}.json)
+        --concurrent-nonces $_CONCURRENT_NONCES
+    environment:
+      TX_GAS_PRICE: "500000"
+      TX_GAS_LIMIT: "550000"
+    resources:
+      cpus: 2
+      memory: 3 GB
+
+task-runners:
+  - name: generate-accounts
+    image: "gcr.io/whiteblock/helpers/ethereum/accounts:master"
+    script:
+      inline: accounts generate -c $_ACCOUNTS_TO_CREATE -e -d /accounts
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+    resources:
+      memory: 2 GB
+
+  - name: generate-genesis
+    image: gcr.io/whiteblock/helpers/ethereum/genesis:master
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+#    environment:
+    script:
+      inline: genesis generate -a /accounts/accounts.json -o consensus=ethash -o gasLimit=$_GAS_LIMIT -o difficulty=55000000 | tee /accounts/genesis.json
+    resources:
+      memory: 2 GB
+  - name: generate-static-peers
+    image: gcr.io/whiteblock/helpers/ethereum/static-peers:master
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+    script: 
+      inline: generate --accounts-file /accounts/accounts.json --network common-network --service geth | tee /accounts/static-nodes.json
+ 
+  - name: generate-topology
+    image: gcr.io/whiteblock/helpers/ethereum/topology:master
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+    script:
+      inline: python generate.py /accounts/static-nodes.json /accounts/ $_ACCOUNTS_TO_CREATE $_BA_PARAMETER 54321 50
+
+  - name: generate-keystore
+    image: gcr.io/whiteblock/helpers/geth/keystore:master
+    volumes:
+      - path: /accounts/
+        name: accounts
+        scope: singleton
+    script:
+      inline: >
+        echo $_ACCOUNT_PASSWORD > /tmp/pw.txt;
+        keystore -p /tmp/pw.txt -f /accounts/accounts.json -o /accounts/keystore/
+    resources:
+      cpus: 2
+      memory: 2 GB
+
+  - name: await-block-production
+    image: gcr.io/whiteblock/helpers/ethereum/await-blocks:master
+    script:
+      inline: await --target $GETH_SERVICE0_COMMON_NETWORK:8545
+    resources:
+      memory: 1 GB
+
+  - name: await-blocks-$_PHASE_ONE_BLOCKS
+    image: gcr.io/whiteblock/helpers/ethereum/await-blocks:master
+    script:
+      inline: await --target $GETH_SERVICE0_COMMON_NETWORK:8545 --block $_PHASE_ONE_BLOCKS
+    resources:
+      memory: 1 GB
+
+tests: 
+  - name: geth_demo
+    phases:
+      - name: generating-accounts
+        tasks: 
+        - type: generate-accounts
+      
+      - name: creating-keystore-genesis-static-peers
+        tasks:
+          - type: generate-genesis
+          - type: generate-keystore
+          - type: generate-static-peers
+
+      - name: setup-topology
+        tasks:
+          - type: generate-topology
+      
+      - name: starting-geth-nodes
+        system:
+          - type: geth
+            count: 90 # <---------------------------------------------
+            resources:
+              networks:
+                - name: common-network
+                  bandwidth: 100 Mbit
+                  packet-loss: 1.0
+      - name: awaiting-block-production
+        tasks:
+          - type: await-block-production
+            timeout: 30m
+            networks:
+              - name: common-network
+
+      - name: starting-stats-tools
+        system:
+        - type: record
+          port-mappings:
+            - "8080:8080"
+          resources:
+            networks:
+              - name: common-network
+
+      - name: start-custom-viewers
+        duration: 120m #wait 120 minutes before checking for tx completion
+        system:
+        - type: tps-logger 
+          port-mappings:
+            - "17777:17777"
+          resources:
+            networks:
+              - name: common-network
+        - type: block-logger
+          resources:
+            networks:
+              - name: common-network
+        - type: eth-viewer
+          port-mappings:
+            - "16555:16555"
+          resources:
+            networks:
+              - name: common-network

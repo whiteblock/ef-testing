@@ -108,10 +108,11 @@ func (test *SysEnv) getGenesisUserName() error {
 	}
 	json.Unmarshal([]byte(out), &test)
 
-	cmd := exec.Command("genesis", "org")
-	out, err := cmd.CombinedOutput()
+	cmd = exec.Command("genesis", "org")
+	out, err = cmd.CombinedOutput()
 	if err != nil {
-		return nil
+		log.WithFields(log.Fields{"out": string(out), "cmd": cmd, "error": err}).Error("Unable to call genesis org.")
+		return fmt.Errorf("Unable to call genesis org.")
 	}
 	test.UserName = strings.TrimSpace(string(out))
 
@@ -419,30 +420,27 @@ func main() {
 		test.testName = slice_file[0]
 		fmt.Println("test ", i, "Begin --- ", test)
 
-		mail_subject = "Successfully completed test: " + test.testName + " from " + test.hostName + " server"
-		test.sendEmail(mail_subject, "")
-		return
 		// Error subject line for email sent in case of error for any of the calls below
 		mail_subject = "Error running test: " + test.testName + " from " + test.hostName + " server"
 		// Begin genesis run yaml_file test
 		err = test.beginTest()
 		if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to begin test.")
-			test.sendEmail(mail_subject, string(err))
+			test.sendEmail(mail_subject, err.Error())
 			return
 		}
 		// Get test ID
 		err = test.getTestId()
 		if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to get test id.")
-			test.sendEmail(mail_subject, err)
+			test.sendEmail(mail_subject, err.Error())
 			return
 		}
 		// Get test DNS so we can monitor web stats
 		err = test.getTestDNS()
 		if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to get test web data URL.")
-			test.sendEmail(mail_subject, err)
+			test.sendEmail(mail_subject, err.Error())
 			return
 		}
 		// Start Webdata collection
@@ -450,7 +448,7 @@ func main() {
 		err = test.monitorWebData()
 		if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to monitor web stats.")
-			test.sendEmail(mail_subject, err)
+			test.sendEmail(mail_subject, err.Error())
 			return
 		}
 		fmt.Println(test)
@@ -458,7 +456,7 @@ func main() {
 		err = test.cleanUp(0)
 		if err != nil {
 			log.WithFields(log.Fields{"yaml_file": file, "error": err}).Error("Unable to clean up after test.")
-			test.sendEmail(mail_subject, err)
+			test.sendEmail(mail_subject, err.Error())
 			return
 		}
 		mail_subject = "Successfully completed test: " + test.testName + " from " + test.hostName + " server"
