@@ -9,8 +9,8 @@ substitutions:
   _ETH_NETWORK_ID: "7777"
   _ACCOUNTS_TO_CREATE: "90"  # should be same as num. nodes
   _BA_PARAMETER: "10"
-  _GAS_LIMIT:  3300000
-  _GAS_TARGET: 2950000
+  _GAS_LIMIT:  45450000
+  _GAS_TARGET: 45000000
   _TPS: 4  # per node, pick sufficiently high rate for saturation 
   _TX_SIZE: 6400
   _CONCURRENT_NONCES: 75    # don't set too high to ensure steady tx saturation (must be less than Geth's `--txpool.accountslots`).
@@ -215,9 +215,9 @@ tests:
             resources:
               networks:
                 - name: common-network
-                  bandwidth: 100 Mbit
-                  latency: 50 ms
-      
+                  bandwidth: 25 Mbit
+                  latency: 150 ms
+                  packet-loss: .01
       - name: awaiting-block-production
         tasks:
           - type: await-block-production

@@ -215,9 +215,9 @@ tests:
             resources:
               networks:
                 - name: common-network
-                  bandwidth: 100 Mbit
-                  latency: 50 ms
-      
+                  bandwidth: 25 Mbit
+                  latency: 150 ms
+                  packet-loss: .01
       - name: awaiting-block-production
         tasks:
           - type: await-block-production
