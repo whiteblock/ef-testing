@@ -5,7 +5,6 @@ import json
 import queue
 import threading
 import time
-import sys
 
 WORKERS = 8
 q = queue.Queue()
@@ -24,9 +23,9 @@ def do_parsing():
         name = test["testName"]
         test_id = test["testID"]
 
-        b = bucket.get_blob(f"{folder}/{name}_{test_id}")
-        if b is None:
-            print(f"{test_id} already parsed, skipping...")
+        b = bucket.list_blobs(prefix=f"{folder}/{name}_{test_id}/")
+        if list(b) != []:
+            print(f"{name}_{test_id} already parsed, skipping...")
             q.task_done()
             continue
 
@@ -50,12 +49,13 @@ def do_parsing():
 
 if __name__ == '__main__':
     for worker in range(WORKERS):
-        threading.Thread(target=do_parsing).start()
+        threading.Thread(target=do_parsing, daemon=True).start()
 
     blobs = bucket.list_blobs(prefix=PREFIX)
     paths = [blob.name for blob in blobs]
 
     for folder in FOLDERS:
+        print(f"changing to folder {folder}")
         blob = bucket.blob(f"{folder}/autoexec.log")
         blob.download_to_filename(f"autoexec.log")
 
@@ -67,3 +67,5 @@ if __name__ == '__main__':
 
             # wait for all jobs to process
             q.join()
+
+    exit()
