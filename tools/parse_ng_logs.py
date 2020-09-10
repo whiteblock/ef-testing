@@ -34,11 +34,10 @@ def do_parsing():
             q.task_done()
 
         b.download_to_filename(syslog_ng_file)
-        # os.system(f"./parser -t {test_id} {syslog_ng_file} {name}_{test_id}/")
-        # os.system(f"gsutil -m cp -R -Z {name}_{test_id}/ gs://whiteblock-logs/{folder}/{name}_{test_id}")
+        os.system(f"./parser -t {test_id} {syslog_ng_file} {name}_{test_id}/")
+        os.system(f"gsutil -m cp -R -Z {name}_{test_id}/ gs://whiteblock-logs/{folder}/{name}_{test_id}")
         os.system(f"rm {syslog_ng_file}")
         print(f"removed {syslog_ng_file}")
-        sys.exit(1)
         q.task_done()
 
 
