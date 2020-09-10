@@ -7,10 +7,12 @@ import threading
 import time
 import sys
 
-WORKERS = 1
+WORKERS = 8
 q = queue.Queue()
 client = storage.Client()
 bucket = client.get_bucket("whiteblock-logs")
+PREFIX = "ef-test"
+FOLDERS = ["ef-auto", "ef-auto1", "ef-auto2"]
 
 
 def do_parsing():
@@ -35,7 +37,8 @@ def do_parsing():
 
         b.download_to_filename(syslog_ng_file)
         os.system(f"./parser -t {test_id} {syslog_ng_file} {name}_{test_id}/")
-        os.system(f"gsutil -m cp -R -Z {name}_{test_id}/ gs://whiteblock-logs/{folder}/{name}_{test_id}")
+        print(f"done parsing {syslog_ng_file}, uploading {name}_{test_id}/ now...")
+        os.system(f"gsutil -m cp -R {name}_{test_id}/ gs://whiteblock-logs/{folder}/{name}_{test_id}")
         os.system(f"rm {syslog_ng_file}")
         print(f"removed {syslog_ng_file}")
         q.task_done()
@@ -45,16 +48,10 @@ if __name__ == '__main__':
     for worker in range(WORKERS):
         threading.Thread(target=do_parsing).start()
 
-    blobs = bucket.list_blobs(prefix="ef-test")
+    blobs = bucket.list_blobs(prefix=PREFIX)
     paths = [blob.name for blob in blobs]
 
-    # get all folders
-    folders = []
-    for path in paths:
-        if path.split('/')[0] not in folders:
-            folders.append(path.split('/')[0])
-
-    for folder in folders:
+    for folder in FOLDERS:
         blob = bucket.blob(f"{folder}/autoexec.log")
         blob.download_to_filename(f"autoexec.log")
 
