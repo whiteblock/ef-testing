@@ -12,7 +12,9 @@ q = queue.Queue()
 client = storage.Client()
 bucket = client.get_bucket("whiteblock-logs")
 PREFIX = "ef-test"
-FOLDERS = ["ef-auto", "ef-auto1", "ef-auto2"]
+
+# designate folders here, e.g. ["ef-test1", "ef-auto9"]
+FOLDERS = []
 
 
 def do_parsing():
@@ -26,6 +28,7 @@ def do_parsing():
         if b is None:
             print(f"{test_id} already parsed, skipping...")
             q.task_done()
+            continue
 
         syslog_ng_file = f"{name}_ef-test-{test_id[:8]}.log"
         print(f"processing {syslog_ng_file}")
@@ -34,11 +37,12 @@ def do_parsing():
         if b is None:
             print(f"{syslog_ng_file} doesn't exist in gcp")
             q.task_done()
+            continue
 
         b.download_to_filename(syslog_ng_file)
         os.system(f"./parser -t {test_id} {syslog_ng_file} {name}_{test_id}/")
         print(f"done parsing {syslog_ng_file}, uploading {name}_{test_id}/ now...")
-        os.system(f"gsutil -m cp -R {name}_{test_id}/ gs://whiteblock-logs/{folder}/{name}_{test_id}")
+        os.system(f"gsutil -m cp -R {name}_{test_id}/ gs://whiteblock-logs/{folder}")
         os.system(f"rm {syslog_ng_file}")
         print(f"removed {syslog_ng_file}")
         q.task_done()
