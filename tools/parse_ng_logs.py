@@ -38,8 +38,8 @@ def do_parsing():
             q.task_done()
             continue
 
-        b.download_to_filename(syslog_ng_file)
-        os.system(f"./parser -t {test_id} {syslog_ng_file} {name}_{test_id}/")
+        os.system(f"time gsutil -o 'GSUtil:parallel_thread_count=1' -o 'GSUtil:sliced_object_download_max_components=8' cp gs://whiteblock-logs/{folder}/{syslog_ng_file} ./")
+        os.system(f"time ./parser -t {test_id} {syslog_ng_file} {name}_{test_id}/")
         print(f"done parsing {syslog_ng_file}, uploading {name}_{test_id}/ now...")
         os.system(f"gsutil -m cp -R {name}_{test_id}/ gs://whiteblock-logs/{folder}")
         os.system(f"rm {syslog_ng_file}")
