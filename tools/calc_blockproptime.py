@@ -23,6 +23,9 @@ class BlockPropagationParser:
         self.num_nodes = 0
         self.fifty_pct_times = []
         self.hundred_pct_times = []
+        self.reorgs = {}
+        self.total_reorgs = 0
+        self.total_final_blocks = 0
 
     def plot_block_prop_times(self):
         os.makedirs("figures", exist_ok=True)
@@ -46,6 +49,7 @@ class BlockPropagationParser:
     def parse_file(self, file):
         # Assumes all log lines have a block hash value in its k-v pairs.
         with open(file, "r") as f:
+            reorg_cnt = 0
             for line in f:
                 logline = json.loads(line)
                 hash = logline["Values"]["hash"]
@@ -58,8 +62,18 @@ class BlockPropagationParser:
                     self.blocks[hash]["importTimes"].append(
                         int(logline["unixNanoTime"] / 1e6)
                     )
+                    self.total_final_blocks = max(logline["Values"]["number"],
+                                                  self.total_final_blocks)
                 if logline["message"].startswith("Successfully sealed new"):
                     self.blocks[hash]["mined"] = logline["unixNanoTime"] / 1e6
+                if logline["message"].startswith("Chain reorg detected"):
+                    # number of blocks added from reorg
+                    # (logs don't indicate how many blocks dropped in reorg)
+                    # reorg_cnt += int(logline["Values"]["add"])
+                    reorg_cnt += 1
+
+            self.reorgs[file] = reorg_cnt
+            self.total_reorgs += reorg_cnt
 
     def sort_import_times(self):
         for hash, data in self.blocks.items():
@@ -102,7 +116,6 @@ class BlockPropagationParser:
         self.hundred_pct_times = self.hundred_pct_times[10:]
 
 
-
 if __name__ == '__main__':
     if len(sys.argv) == 2:
         path = sys.argv[1]
@@ -133,7 +146,7 @@ if __name__ == '__main__':
     """Force number of nodes here in case a node fails in a test. Parsing will
     only take into account blocks if exactly `parser.num_nodes` nodes print
     that a block was imported."""
-    # parser.num_nodes = 29
+    parser.num_nodes = 90
 
     parser.sort_import_times()
     parser.calc_prop_times()
@@ -149,8 +162,12 @@ if __name__ == '__main__':
     print(f"Total Blocks Seen: {len(parser.blocks)}")
     print(f"Blocks imported by over 50% nodes: {parser.seen_by_majority()}")
     print(f"Blocks stats with {parser.num_nodes} import times: {len(parser.fifty_pct_times)}")
+    print(f"Finalized blocks: {parser.total_final_blocks}")
     print(f"51% block prop. time avg: {mean(parser.fifty_pct_times):.2f} ms")
     print(f"100% block prop. time avg: {mean(parser.hundred_pct_times):.2f} ms")
+    print(f"reorgs total: {parser.total_reorgs}")
+    print(f"avg reorgs per block: {parser.total_reorgs / parser.total_final_blocks}")
+
 
     # Uncomment to show the plots (they are also saved)
     # print("Hit Ctrl-c to close figures (you may need to click on a figure)")

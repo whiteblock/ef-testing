@@ -1,21 +1,19 @@
 ## Tools
 
-#### Workflow to Parse Test Logs
+#### Raw Logs
 
- * Make copy of syslog-ng logs into the `backup/` folder
- * Make sure the rstats file is in the format `{TEST_ID}.stats`
- * On the logs instance:
-    * `./parser -t 18f086eb-4269-4034-a449-2e4865c81871 ef-test-18f086eb.log`
-    * Takes awhile
- * On your local machine:
-    * Set `TEST_ID` in `dl_logs.sh`
-    * `bash dl_logs.sh`
-    * `./resources -s 18f086eb-4269-4034-a449-2e4865c81871.stats rstats-18f086eb-4269-4034-a449-2e4865c81871`
-    * `python calc_blockproptime.py 18f086eb-4269-4034-a449-2e4865c81871/`
-        * Note: uncomment lines in `calc_blockproptime.py` to account for failed 
-          nodes, show plot_resources, or inspect data.
-    * `python plot_resources.py rstats-18f086eb-4269-4034-a449-2e4865c81871`
+Logs are hosted via Google Cloud Storage:
 
+ * TBA
+
+#### Plots
+
+Plots can be found under the following directories:
+
+ * `blockprop_plots`: Scatter plots of the block propagation times of each
+ block in a single test run.
+ * `graphs`: Plots of average block propagation times and reorg rates
+ across tests in a series.
 
 #### syslogng parsing example
 
@@ -25,9 +23,9 @@ by container.
     make
     ./parser -t 42a8799e-7881-4430-9dbb-ed304d1bd224 ef-test-42a879.log
 
-See help of `parser` for more information. 
+See help of `parser` for more information.
 
-    #python calc_blockproptime.py 42a8799e-7881-4430-9dbb-ed304d1bd224/
+    python calc_blockproptime.py 42a8799e-7881-4430-9dbb-ed304d1bd224/
 
 #### cadvisor parsing example
 
@@ -42,7 +40,7 @@ Build cadvisor resource processor from source
     # set var MAX_FILES to limit how many graphs to show
 
 You can also run plot_resources.py on a single file:
-    
+
     python plot_resources.py rstat-42a8799e-7881-4430-9dbb-ed304d1bd224/geth-service55
 
 #### Geth Log Lines of Interest

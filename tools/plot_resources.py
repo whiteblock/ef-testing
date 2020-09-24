@@ -6,7 +6,7 @@ import signal
 import numpy as np
 import re
 
-MAX_FILES = 100
+MAX_FILES = 5
 FIGURE_SAVE_DIR = 'figures'
 
 def signal_handler(fig, frame):

@@ -3,3 +3,4 @@ tools/*-*-*-*-*.stats
 tools/rstats*
 tools/*.log
 autoexec-yaml/
+tools/parsed_logs/

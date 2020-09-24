@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"regexp"
-    "fmt"
 )
 
 var headExtr = regexp.MustCompile(`(?m)^[A-Z| ]{3,5}\[[0-9]*-[0-9]*\|[0-9]*\:[0-9]*:[0-9]*\.[0-9]*\]`)
@@ -97,7 +96,6 @@ func (o *Outputter) extractKVPairs(msg SyslogngOutput) LogLine {
     }
     lvl := strings.Split(head,"[")[0]
     rawTS := head[len(lvl):]
-    fmt.Println(rawTS)
 
     years := time.Now().Year()
     t, err := time.Parse("[01-02|15:04:05.000]",rawTS)
@@ -136,6 +134,14 @@ func isSealBlock(logline LogLine) bool {
     return false
 }
 
+func isReorg(logline LogLine) bool {
+    if logline.Message == "Chain reorg detected" {
+        return true
+    }
+    return false
+}
+
+
 func (o *Outputter) handleInput(msg SyslogngOutput, id string) error {
     if id != "" && msg.Testrun != id {
         // skip log lines from other tests IDs
@@ -149,7 +155,8 @@ func (o *Outputter) handleInput(msg SyslogngOutput, id string) error {
     logline := o.extractKVPairs(msg)
 
     if (isImportSegment(logline) || 
-        isSealBlock(logline)) == false {
+        isSealBlock(logline) ||
+        isReorg(logline)) == false {
         // Not a useful log line
         return nil
     }

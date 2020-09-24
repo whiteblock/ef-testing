@@ -14,14 +14,13 @@ func main() {
     if err := root.Execute(); err != nil {
         util.ErrorFatal(err)
     }
-
 }
 
 var root = &cobra.Command{
-    Use:     "parser <source-file> <destination-file>",
+    Use:     "parser <source-file> <destination-directory>",
     Version: "1.0.0",
     Run: func(cmd *cobra.Command, args []string) {
-        util.CheckArguments(cmd, args, 1, 1)
+        util.CheckArguments(cmd, args, 2, 2)
         source, err := os.Open(args[0])
         if err != nil {
             util.ErrorFatal(err)
@@ -29,8 +28,8 @@ var root = &cobra.Command{
         defer source.Close()
 
         out := &Outputter{
-            Destination: util.GetStringFlagValue(cmd, "test-id"),
-            Split:       util.GetBoolFlagValue(cmd, "split"),
+            Destination: args[1],
+            Split:      true,
         }
         err = out.Setup()
         if err != nil {
@@ -59,8 +58,6 @@ var root = &cobra.Command{
 }
 
 func init() {
-    // TODO: Clean up this workaround. "split" option no longer needed. Should
-    // be a default behavior.
-    root.Flags().BoolP("split", "s", true, "treat destination file as a directory and output to a different file for each container")
-    root.Flags().StringP("test-id", "t", "", "filter logs from specific test ID")
+    root.Flags().StringP("test-id", "t", "", "Genesis test ID to parse (required)")
+    root.MarkFlagRequired("test-id")
 }
